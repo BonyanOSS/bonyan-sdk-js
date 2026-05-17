@@ -1,11 +1,14 @@
 import { BonyanApiError, BonyanRequestError } from './errors.js';
 import { HttpClient } from './http.js';
+import { RecitersResource } from './resources/reciters.js';
 import type { BonyanClientOptions } from './types.js';
 
 export const DEFAULT_BASE_URL = 'https://api.bonyanoss.org/bonyan-api/v1';
 export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export class BonyanClient {
+  readonly reciters: RecitersResource;
+
   private readonly http: HttpClient;
 
   constructor(options: BonyanClientOptions = {}) {
@@ -17,6 +20,8 @@ export class BonyanClient {
     };
 
     this.http = new HttpClient(httpOptions);
+
+    this.reciters = new RecitersResource(this.http);
   }
 
   async request<T>(path: string, options?: RequestInit): Promise<T> {

@@ -23,3 +23,26 @@ export interface BonyanErrorBody {
     requestId?: string;
   };
 }
+
+export type ReciterSource = 'mp3quran.net' | 'quran.com';
+
+export interface ReciterMoshaf {
+  id: number;
+  name: string;
+  server: string;
+}
+
+export interface Reciter {
+  id: number;
+  name: string;
+  date?: string;
+  moshaf?: ReciterMoshaf[];
+  style?: string | null;
+  apiName: ReciterSource;
+}
+
+export interface ReciterAudio {
+  reciter: string;
+  surah: number;
+  audio: string;
+}
