@@ -1,0 +1,62 @@
+{
+  "name": "@bonyanoss/bonyan-api",
+  "version": "0.1.0",
+  "description": "Official JavaScript and TypeScript SDK for Bonyan-API.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "prettier --check . && tsc --noEmit",
+    "format": "prettier --write .",
+    "prepublishOnly": "pnpm build && pnpm test && pnpm typecheck"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BonyanOSS/bonyan-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BonyanOSS/bonyan-sdk-js/issues"
+  },
+  "homepage": "https://github.com/BonyanOSS/bonyan-sdk-js#readme",
+  "keywords": [
+    "bonyan",
+    "bonyanoss",
+    "islamic",
+    "quran",
+    "reciters",
+    "typescript",
+    "sdk"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.33.4",
+  "devDependencies": {
+    "eslint": "^10.4.0",
+    "prettier": "^3.8.3",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  }
+}
