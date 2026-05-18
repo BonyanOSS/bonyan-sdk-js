@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Surah');
+const bonyan = new BonyanClient();
 
 const surahs = await bonyan.surah.list();
 console.log('Surahs:', surahs.surah.length);

@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Hadith');
+const bonyan = new BonyanClient();
 
 const books = await bonyan.hadith.listBooks();
 console.log('Books:', books.slice(0, 5));

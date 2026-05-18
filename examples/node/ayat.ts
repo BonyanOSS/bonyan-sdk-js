@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Ayat');
+const bonyan = new BonyanClient();
 
 const allAyat = await bonyan.ayat.list();
 console.log('Surahs with ayat:', allAyat.surahs.length);

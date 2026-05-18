@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Hijri');
+const bonyan = new BonyanClient();
 
 const today = await bonyan.hijri.today();
 console.log('Today:', today);

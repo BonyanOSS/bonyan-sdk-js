@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Prayer');
+const bonyan = new BonyanClient();
 
 const byCity = await bonyan.prayer.getTimes({
   date: '18-05-2026',

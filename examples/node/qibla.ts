@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Qibla');
+const bonyan = new BonyanClient();
 
 const direction = await bonyan.qibla.getDirection(30.0444, 31.2357);
 console.log('Direction:', direction);

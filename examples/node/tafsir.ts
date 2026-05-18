@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Tafsir');
+const bonyan = new BonyanClient();
 
 const editions = await bonyan.tafsir.listEditions();
 console.log('Editions:', editions.slice(0, 5));
