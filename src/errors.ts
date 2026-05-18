@@ -7,7 +7,13 @@ export class ApiError extends Error {
   readonly body?: unknown;
   readonly retryAfterMs: number | undefined;
 
-  constructor(params: { status: number; statusText?: string | undefined; body?: unknown; message?: string | undefined; retryAfterMs?: number | undefined; }) {
+  constructor(params: {
+    status: number;
+    statusText?: string | undefined;
+    body?: unknown;
+    message?: string | undefined;
+    retryAfterMs?: number | undefined;
+  }) {
     super(params.message ?? getApiErrorMessage(params.status, params.statusText, params.body));
     this.status = params.status;
     this.statusText = params.statusText;
@@ -41,14 +47,25 @@ export class BonyanApiError extends ApiError {
   readonly code: BonyanErrorCode | undefined;
   readonly requestId: string | undefined;
 
-  constructor(params: { status: number; statusText?: string | undefined; body?: unknown; message?: string | undefined; retryAfterMs?: number | undefined; }) {
+  constructor(params: {
+    status: number;
+    statusText?: string | undefined;
+    body?: unknown;
+    message?: string | undefined;
+    retryAfterMs?: number | undefined;
+  }) {
     super(params);
     const errorBody = isBonyanErrorBody(params.body) ? params.body : undefined;
     this.code = errorBody?.error?.code;
     this.requestId = errorBody?.error?.requestId;
   }
 
-  static fromResponse( status: number, body: unknown, statusText?: string | undefined, retryAfterMs?: number | undefined,): BonyanApiError {
+  static fromResponse(
+    status: number,
+    body: unknown,
+    statusText?: string | undefined,
+    retryAfterMs?: number | undefined,
+  ): BonyanApiError {
     return new BonyanApiError({ status, statusText, body, retryAfterMs });
   }
 }

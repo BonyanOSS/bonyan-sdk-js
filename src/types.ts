@@ -16,7 +16,7 @@ export type TafsirApiSource = 'alquran.cloud' | 'quranenc.com';
 export type HadithApiSource = 'hadith.gading.dev' | 'cdn.jsdelivr.net/sutanlab/hadith-api';
 export type PrayerApiSource = 'aladhan.com' | 'pray.zone';
 export type HijriApiSource = 'aladhan.com';
-export type QiblaApiSource = 'aladhan.com'
+export type QiblaApiSource = 'aladhan.com';
 
 export interface ReciterItem {
   id: number;
