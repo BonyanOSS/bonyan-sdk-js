@@ -1,6 +1,6 @@
-import { bonyan, printTitle } from './_client.js';
+import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-printTitle('Azkar');
+const bonyan = new BonyanClient();
 
 const categories = await bonyan.azkar.categories();
 console.log('Categories:', categories.categories.slice(0, 5));
