@@ -6,4 +6,8 @@ export type {
   BonyanErrorCode,
   BonyanFetch,
   BonyanSuccessBody,
+  Reciter,
+  ReciterAudio,
+  ReciterMoshaf,
+  ReciterSource,
 } from './types.js';
