@@ -1,35 +1,33 @@
 import type { HttpClient } from '../http.js';
-import type { Reciter, ReciterAudio } from '../types.js';
+import type { ReciterItem } from '../types.js';
+import { validateNonEmptyString, validatePositiveInteger, validateSurah } from '../validation.js';
 
-interface RecitersListData {
-  reciters: Reciter[];
+export interface ReciterAudio {
+  reciter: string;
+  surah: number;
+  audio: string;
 }
 
 export class RecitersResource {
   constructor(private readonly http: HttpClient) {}
 
-  async list(options?: RequestInit): Promise<Reciter[]> {
-    const data = await this.http.get<RecitersListData>('/reciters', options);
-    return data.reciters;
+  list(): Promise<{ reciters: ReciterItem[] }> {
+    return this.http.get('/reciters');
   }
 
-  async get(id: number, options?: RequestInit): Promise<Reciter> {
-    return this.http.get<Reciter>(`/reciters/${id}`, options);
+  getById(id: number): Promise<ReciterItem> {
+    validatePositiveInteger('id', id);
+    return this.http.get(`/reciters/${id}`);
   }
 
-  async search(name: string, options?: RequestInit): Promise<Reciter[]> {
-    return this.http.get<Reciter[]>('/reciters/search', {
-      ...options,
-      query: { name },
-    });
+  search(name: string): Promise<ReciterItem[]> {
+    validateNonEmptyString('name', name);
+    return this.http.get('/reciters/search', { query: { name } });
   }
 
-  async getSurahAudio(reciterId: number, surah: number, options?: RequestInit): Promise<ReciterAudio> {
-    return this.http.get<ReciterAudio>(`/reciters/${reciterId}/surah/${surah}`, options);
+  getSurah(reciterId: number, surah: number): Promise<ReciterAudio> {
+    validatePositiveInteger('reciterId', reciterId);
+    validateSurah(surah);
+    return this.http.get(`/reciters/${reciterId}/surah/${surah}`);
   }
-
-  getReciters = this.list;
-  getById = this.get;
-  searchByName = this.search;
-  getAudio = this.getSurahAudio;
 }
