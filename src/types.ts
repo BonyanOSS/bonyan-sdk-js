@@ -1,12 +1,55 @@
+/**
+ * Type definitions for the Bonyan-API SDK.
+ *
+ * Types are grouped by domain (client, envelope, resources). See the README
+ * and individual resource files for usage examples.
+ */
+
+// ─── Client ──────────────────────────────────────────────────────────────────
+
 export type BonyanFetch = typeof fetch;
 
 export interface BonyanClientOptions {
+  /** Base URL of the Bonyan-API. Defaults to the official endpoint. */
   baseUrl?: string;
+  /** Per-request timeout in milliseconds. Defaults to 10 seconds. */
   timeoutMs?: number;
-  headers?: Record<string, string>;
+  /** Number of retry attempts on 5xx / 429 / network errors. Defaults to 3. */
   retry?: number;
+  /** Extra headers sent on every request. */
+  headers?: Record<string, string>;
+  /** Custom fetch implementation (Node < 18, undici, etc). */
   fetch?: BonyanFetch;
+  /** Optional User-Agent header. */
+  userAgent?: string;
 }
+
+// ─── Envelope ────────────────────────────────────────────────────────────────
+
+export interface BonyanSuccessBody<T> {
+  success: true;
+  data: T;
+}
+
+export type BonyanErrorCode =
+  | 'BAD_REQUEST'
+  | 'NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'ALL_SOURCES_FAILED'
+  | 'INTERNAL_SERVER_ERROR'
+  | (string & {});
+
+export interface BonyanErrorBody {
+  success: false;
+  message?: string;
+  error?: {
+    code?: BonyanErrorCode;
+    message?: string;
+    requestId?: string;
+  };
+}
+
+// ─── API sources ─────────────────────────────────────────────────────────────
 
 export type SurahApiSource = 'mp3quran.net' | 'alquran.cloud' | 'quran.com';
 export type ReciterApiSource = 'mp3quran.net' | 'quran.com';
@@ -18,38 +61,65 @@ export type PrayerApiSource = 'aladhan.com' | 'pray.zone';
 export type HijriApiSource = 'aladhan.com';
 export type QiblaApiSource = 'aladhan.com';
 
-export interface ReciterItem {
+// ─── Reciters ────────────────────────────────────────────────────────────────
+
+export interface ReciterMoshaf {
+  id: number;
+  name: string;
+  server: string;
+}
+
+export interface Reciter {
   id: number;
   name: string;
   date?: string;
-  moshaf?: {
-    id: number;
-    name: string;
-    server: string;
-  }[];
+  moshaf?: ReciterMoshaf[];
   style?: string | null;
   apiName: ReciterApiSource;
 }
 
-export interface SurahItem {
+export interface ReciterAudio {
+  reciter: string;
+  surah: number;
+  audio: string;
+}
+
+// ─── Surah ───────────────────────────────────────────────────────────────────
+
+export interface Surah {
   id: number;
   name: string;
   makkia?: boolean;
   apiName: SurahApiSource;
 }
 
-export interface AyaItem {
+// ─── Ayat ────────────────────────────────────────────────────────────────────
+
+export interface Aya {
   number: number;
   text: string;
   numberInSurah: number;
 }
 
-export interface SurahWithAyaItem {
+export interface SurahWithAyat {
   number: number;
   name: string;
-  ayat: AyaItem[];
+  ayat: Aya[];
   apiName: AyatApiSource;
 }
+
+export interface AyaWithSurah {
+  surahNumber: number;
+  surahName: string;
+  aya: Aya;
+}
+
+export interface AyatSearchResult {
+  total: number;
+  results: AyaWithSurah[];
+}
+
+// ─── Azkar ───────────────────────────────────────────────────────────────────
 
 export interface AzkarItem {
   id: number;
@@ -60,10 +130,33 @@ export interface AzkarItem {
   content?: string;
 }
 
+export interface AzkarCategorySummary {
+  name: string;
+  count: number;
+  apiName: AzkarApiSource;
+}
+
 export interface AzkarCategory {
   category: string;
   items: AzkarItem[];
   apiName: AzkarApiSource;
+}
+
+export interface AzkarSearchHit {
+  category: string;
+  item: AzkarItem;
+}
+
+export interface AzkarSearchResult {
+  total: number;
+  results: AzkarSearchHit[];
+}
+
+// ─── Tafsir ──────────────────────────────────────────────────────────────────
+
+export interface TafsirEdition {
+  id: string;
+  label: string;
 }
 
 export interface TafsirItem {
@@ -73,6 +166,8 @@ export interface TafsirItem {
   edition: string;
   apiName: TafsirApiSource;
 }
+
+// ─── Hadith ──────────────────────────────────────────────────────────────────
 
 export interface HadithBook {
   id: string;
@@ -87,6 +182,19 @@ export interface HadithItem {
   book: string;
   apiName: HadithApiSource;
 }
+
+export interface HadithBookContent {
+  book: string;
+  available: number;
+  hadiths: HadithItem[];
+}
+
+export interface HadithRandomResult {
+  book: string;
+  hadith: HadithItem;
+}
+
+// ─── Prayer ──────────────────────────────────────────────────────────────────
 
 export interface PrayerTimings {
   date: string;
@@ -107,6 +215,8 @@ export interface PrayerTimings {
   apiName: PrayerApiSource;
 }
 
+// ─── Hijri ───────────────────────────────────────────────────────────────────
+
 export interface HijriDate {
   hijri: {
     date: string;
@@ -121,6 +231,8 @@ export interface HijriDate {
   apiName: HijriApiSource;
 }
 
+// ─── Qibla ───────────────────────────────────────────────────────────────────
+
 export interface QiblaInfo {
   latitude: number;
   longitude: number;
@@ -128,24 +240,10 @@ export interface QiblaInfo {
   apiName: QiblaApiSource;
 }
 
-export type Reciter = ReciterItem;
-export type ReciterAudio = { reciter: string; surah: number; audio: string };
-export type ReciterMoshaf = NonNullable<ReciterItem['moshaf']>[number];
-export type ReciterSource = ReciterApiSource;
+// ─── Health ──────────────────────────────────────────────────────────────────
 
-export type BonyanErrorCode = 'BAD_REQUEST' | 'NOT_FOUND' | 'ALL_SOURCES_FAILED' | 'INTERNAL_ERROR' | string;
-
-export interface BonyanErrorBody {
-  success: false;
-  message?: string;
-  error?: {
-    code?: BonyanErrorCode;
-    message?: string;
-    requestId?: string;
-  };
-}
-
-export interface BonyanSuccessBody<T> {
-  success: true;
-  data: T;
+export interface HealthStatus {
+  status: string;
+  code: number;
+  timestamp: string;
 }

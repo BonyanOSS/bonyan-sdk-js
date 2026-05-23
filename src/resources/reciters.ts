@@ -1,33 +1,45 @@
-import type { HttpClient } from '../http.js';
-import type { ReciterItem } from '../types.js';
-import { validateNonEmptyString, validatePositiveInteger, validateSurah } from '../validation.js';
+import type { Reciter, ReciterAudio } from '../types.js';
+import { ensureNonEmptyString, ensurePositiveInteger, ensureSurahNumber } from '../validation.js';
+import { BaseResource } from './base.js';
 
-export interface ReciterAudio {
-  reciter: string;
-  surah: number;
-  audio: string;
+interface RecitersListEnvelope {
+  reciters: Reciter[];
 }
 
-export class RecitersResource {
-  constructor(private readonly http: HttpClient) {}
-
-  list(): Promise<{ reciters: ReciterItem[] }> {
-    return this.http.get('/reciters');
+/**
+ * Endpoints under `/reciters` — list, lookup, search and per-surah audio.
+ *
+ * @example
+ * ```ts
+ * const all = await client.reciters.list();
+ * const reciter = await client.reciters.getById(1);
+ * const matches = await client.reciters.search('العفاسي');
+ * const audio = await client.reciters.getSurah(1, 1);
+ * ```
+ */
+export class RecitersResource extends BaseResource {
+  /** `GET /reciters` — returns every reciter known to the API. */
+  async list(): Promise<Reciter[]> {
+    const data = await this.http.get<RecitersListEnvelope>('/reciters');
+    return data.reciters;
   }
 
-  getById(id: number): Promise<ReciterItem> {
-    validatePositiveInteger('id', id);
-    return this.http.get(`/reciters/${id}`);
+  /** `GET /reciters/:id` — fetch a single reciter by numeric id. */
+  getById(id: number): Promise<Reciter> {
+    ensurePositiveInteger('id', id);
+    return this.http.get<Reciter>(`/reciters/${id}`);
   }
 
-  search(name: string): Promise<ReciterItem[]> {
-    validateNonEmptyString('name', name);
-    return this.http.get('/reciters/search', { query: { name } });
+  /** `GET /reciters/search?name=…` — fuzzy search by reciter name (Arabic or English). */
+  search(name: string): Promise<Reciter[]> {
+    ensureNonEmptyString('name', name);
+    return this.http.get<Reciter[]>('/reciters/search', { query: { name } });
   }
 
+  /** `GET /reciters/:id/surah/:surah` — direct audio URL for one reciter+surah. */
   getSurah(reciterId: number, surah: number): Promise<ReciterAudio> {
-    validatePositiveInteger('reciterId', reciterId);
-    validateSurah(surah);
-    return this.http.get(`/reciters/${reciterId}/surah/${surah}`);
+    ensurePositiveInteger('reciterId', reciterId);
+    ensureSurahNumber(surah);
+    return this.http.get<ReciterAudio>(`/reciters/${reciterId}/surah/${surah}`);
   }
 }

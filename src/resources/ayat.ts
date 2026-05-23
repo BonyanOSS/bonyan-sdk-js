@@ -1,44 +1,67 @@
-import type { HttpClient } from '../http.js';
-import type { AyaItem, SurahWithAyaItem } from '../types.js';
+import type { AyaWithSurah, AyatSearchResult, SurahWithAyat } from '../types.js';
 import {
-  validateIntegerRange,
-  validateLimit,
-  validateNonEmptyString,
-  validatePositiveInteger,
-  validateSurah,
+  TOTAL_AYAT,
+  ensureAyaNumber,
+  ensureIntegerInRange,
+  ensureLimit,
+  ensureNonEmptyString,
+  ensureSurahNumber,
 } from '../validation.js';
+import { BaseResource } from './base.js';
+
+interface AyatListEnvelope {
+  surahs: SurahWithAyat[];
+}
+
+interface AyatSearchEnvelope {
+  total: number;
+  data: AyaWithSurah[];
+}
 
 export interface AyatSearchOptions {
+  /** Maximum number of matches to return. 1 ≤ limit ≤ 500 (defaults to 50 server-side). */
   limit?: number;
 }
 
-export interface AyatSearchResult {
-  success: true;
-  total: number;
-  data: Array<{ surahNumber: number; surahName: string; aya: AyaItem }>;
-}
-
-export class AyatResource {
-  constructor(private readonly http: HttpClient) {}
-
-  list(): Promise<{ surahs: SurahWithAyaItem[] }> {
-    return this.http.get('/ayat');
+/**
+ * Endpoints under `/ayat` — full mushaf access plus full-text search.
+ *
+ * @example
+ * ```ts
+ * const allSurahs = await client.ayat.list();
+ * const aya = await client.ayat.getById(1);
+ * const verse = await client.ayat.getBySurah(2, 255); // Ayat al-Kursi
+ * const matches = await client.ayat.search('الرحمن', { limit: 20 });
+ * console.log(matches.total, matches.results.length);
+ * ```
+ */
+export class AyatResource extends BaseResource {
+  /** `GET /ayat` — returns all 114 surahs with their full ayat. (Heavy response.) */
+  async list(): Promise<SurahWithAyat[]> {
+    const data = await this.http.get<AyatListEnvelope>('/ayat');
+    return data.surahs;
   }
 
-  getById(id: number): Promise<{ surahNumber: number; surahName: string; aya: AyaItem }> {
-    validateIntegerRange('id', id, 1, 6236);
-    return this.http.get(`/ayat/${id}`);
+  /** `GET /ayat/:id` — fetch an aya by its global number (1-6236). */
+  getById(id: number): Promise<AyaWithSurah> {
+    ensureIntegerInRange('id', id, 1, TOTAL_AYAT);
+    return this.http.get<AyaWithSurah>(`/ayat/${id}`);
   }
 
-  getBySurah(surah: number, aya: number): Promise<{ surahNumber: number; surahName: string; aya: AyaItem }> {
-    validateSurah(surah);
-    validatePositiveInteger('aya', aya);
-    return this.http.get(`/ayat/${surah}/aya/${aya}`);
+  /** `GET /ayat/:surah/aya/:aya` — fetch an aya by surah number and verse number. */
+  getBySurah(surah: number, aya: number): Promise<AyaWithSurah> {
+    ensureSurahNumber(surah);
+    ensureAyaNumber(aya);
+    return this.http.get<AyaWithSurah>(`/ayat/${surah}/aya/${aya}`);
   }
 
-  search(text: string, options?: AyatSearchOptions): Promise<AyatSearchResult> {
-    validateNonEmptyString('text', text);
-    validateLimit(options?.limit, 500);
-    return this.http.get('/ayat/search', { query: { text, limit: options?.limit }, unwrap: false });
+  /** `GET /ayat/search?text=…` — full-text search across the mushaf. */
+  async search(text: string, options: AyatSearchOptions = {}): Promise<AyatSearchResult> {
+    ensureNonEmptyString('text', text);
+    ensureLimit(options.limit, 500);
+    const envelope = await this.http.get<AyatSearchEnvelope>('/ayat/search', {
+      query: { text, limit: options.limit },
+    });
+    return { total: envelope.total, results: envelope.data };
   }
 }

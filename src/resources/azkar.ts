@@ -1,36 +1,68 @@
-import type { HttpClient } from '../http.js';
-import type { AzkarCategory, AzkarItem } from '../types.js';
-import { validateLimit, validateNonEmptyString } from '../validation.js';
+import type {
+  AzkarCategory,
+  AzkarCategorySummary,
+  AzkarItem,
+  AzkarSearchHit,
+  AzkarSearchResult,
+} from '../types.js';
+import { ensureLimit, ensureNonEmptyString } from '../validation.js';
+import { BaseResource } from './base.js';
+
+interface AzkarCategoriesEnvelope {
+  categories: AzkarCategorySummary[];
+}
+
+interface AzkarSearchEnvelope {
+  total: number;
+  data: AzkarSearchHit[];
+}
+
+interface AzkarRandomEnvelope {
+  category: string;
+  item: AzkarItem;
+}
 
 export interface AzkarSearchOptions {
+  /** Maximum number of matches to return. 1 ≤ limit ≤ 200 (defaults to 50 server-side). */
   limit?: number;
 }
 
-export interface AzkarSearchResult {
-  success: true;
-  total: number;
-  data: Array<{ category: string; item: { id: number; text: string; count?: number } }>;
-}
-
-export class AzkarResource {
-  constructor(private readonly http: HttpClient) {}
-
-  categories(): Promise<{ categories: { name: string; count: number; apiName: string }[] }> {
-    return this.http.get('/azkar');
+/**
+ * Endpoints under `/azkar` — daily supplications grouped by category.
+ *
+ * @example
+ * ```ts
+ * const categories = await client.azkar.listCategories();
+ * const morning   = await client.azkar.getByCategory('أذكار الصباح');
+ * const matches   = await client.azkar.search('استغفر', { limit: 10 });
+ * const random    = await client.azkar.random();
+ * ```
+ */
+export class AzkarResource extends BaseResource {
+  /** `GET /azkar` — list every category with item counts. */
+  async listCategories(): Promise<AzkarCategorySummary[]> {
+    const data = await this.http.get<AzkarCategoriesEnvelope>('/azkar');
+    return data.categories;
   }
 
+  /** `GET /azkar/:category` — fetch every zikr in a category. */
   getByCategory(category: string): Promise<AzkarCategory> {
-    validateNonEmptyString('category', category);
-    return this.http.get(`/azkar/${encodeURIComponent(category)}`);
+    ensureNonEmptyString('category', category);
+    return this.http.get<AzkarCategory>(`/azkar/${encodeURIComponent(category)}`);
   }
 
-  search(text: string, options?: AzkarSearchOptions): Promise<AzkarSearchResult> {
-    validateNonEmptyString('text', text);
-    validateLimit(options?.limit, 200);
-    return this.http.get('/azkar/search', { query: { text, limit: options?.limit }, unwrap: false });
+  /** `GET /azkar/search?text=…` — full-text search across all azkar. */
+  async search(text: string, options: AzkarSearchOptions = {}): Promise<AzkarSearchResult> {
+    ensureNonEmptyString('text', text);
+    ensureLimit(options.limit, 200);
+    const envelope = await this.http.get<AzkarSearchEnvelope>('/azkar/search', {
+      query: { text, limit: options.limit },
+    });
+    return { total: envelope.total, results: envelope.data };
   }
 
+  /** `GET /azkar/random` — return a random zikr from any category. */
   random(): Promise<{ category: string; item: AzkarItem }> {
-    return this.http.get('/azkar/random');
+    return this.http.get<AzkarRandomEnvelope>('/azkar/random');
   }
 }

@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an idea for the SDK.
+labels: [enhancement, triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Explain the user pain or limitation you're hitting today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Code snippet showing how you'd like the SDK to look.
+      render: ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: api-impact
+    attributes:
+      label: API impact
+      options:
+        - label: This is a breaking change.
+        - label: This requires a change to Bonyan-API (server).

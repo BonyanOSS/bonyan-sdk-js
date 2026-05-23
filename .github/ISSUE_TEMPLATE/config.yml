@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bonyan-API issues (server)
+    url: https://github.com/BonyanOSS/Bonyan-API/issues
+    about: For backend / endpoint issues, please open a ticket on the Bonyan-API repo.
+  - name: Question / Discussion
+    url: https://github.com/BonyanOSS/bonyan-sdk-js/discussions
+    about: Ask a question or share an idea.

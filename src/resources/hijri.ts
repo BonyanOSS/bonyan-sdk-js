@@ -1,21 +1,34 @@
-import type { HttpClient } from '../http.js';
 import type { HijriDate } from '../types.js';
-import { validateDate } from '../validation.js';
+import { ensureDate } from '../validation.js';
+import { BaseResource } from './base.js';
 
-export class HijriResource {
-  constructor(private readonly http: HttpClient) {}
-
+/**
+ * Endpoints under `/hijri` — convert between Hijri and Gregorian dates.
+ *
+ * Dates use the **`DD-MM-YYYY`** format.
+ *
+ * @example
+ * ```ts
+ * const today = await client.hijri.today();
+ * const fromGregorian = await client.hijri.fromGregorian('01-01-2026');
+ * const toGregorian = await client.hijri.toGregorian('15-06-1447');
+ * ```
+ */
+export class HijriResource extends BaseResource {
+  /** `GET /hijri/today` — today's date in both calendars. */
   today(): Promise<HijriDate> {
-    return this.http.get('/hijri/today');
+    return this.http.get<HijriDate>('/hijri/today');
   }
 
+  /** `GET /hijri/from-gregorian?date=DD-MM-YYYY` — convert a Gregorian date to Hijri. */
   fromGregorian(date?: string): Promise<HijriDate> {
-    if (date !== undefined) validateDate(date);
-    return this.http.get('/hijri/from-gregorian', { query: { date } });
+    if (date !== undefined) ensureDate(date);
+    return this.http.get<HijriDate>('/hijri/from-gregorian', { query: { date } });
   }
 
+  /** `GET /hijri/to-gregorian?date=DD-MM-YYYY` — convert a Hijri date to Gregorian. */
   toGregorian(date: string): Promise<HijriDate> {
-    validateDate(date);
-    return this.http.get('/hijri/to-gregorian', { query: { date } });
+    ensureDate(date);
+    return this.http.get<HijriDate>('/hijri/to-gregorian', { query: { date } });
   }
 }

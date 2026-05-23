@@ -1,0 +1,48 @@
+name: Bug report
+description: Report something that does not work as expected.
+labels: [bug, triage]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SDK version
+      placeholder: 0.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runtime
+      description: Node.js version, browser, Bun, Deno…
+      placeholder: Node 20.11.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimum code that reproduces the issue.
+      render: ts
+      placeholder: |
+        import { BonyanClient } from '@bonyanoss/bonyan-api';
+        const client = new BonyanClient();
+        await client.reciters.list();
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the full error message and stack trace if any.
+    validations:
+      required: true

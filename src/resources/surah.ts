@@ -1,21 +1,37 @@
-import type { HttpClient } from '../http.js';
-import type { SurahItem } from '../types.js';
-import { validateNonEmptyString, validateSurah } from '../validation.js';
+import type { Surah } from '../types.js';
+import { ensureNonEmptyString, ensureSurahNumber } from '../validation.js';
+import { BaseResource } from './base.js';
 
-export class SurahResource {
-  constructor(private readonly http: HttpClient) {}
+interface SurahListEnvelope {
+  surah: Surah[];
+}
 
-  list(): Promise<{ surah: SurahItem[] }> {
-    return this.http.get('/surah');
+/**
+ * Endpoints under `/surah` — the 114 chapters of the Quran.
+ *
+ * @example
+ * ```ts
+ * const all = await client.surah.list();        // 114 chapters
+ * const fatiha = await client.surah.getById(1); // Al-Fatiha
+ * const matches = await client.surah.search('البقرة');
+ * ```
+ */
+export class SurahResource extends BaseResource {
+  /** `GET /surah` — returns the full list of surahs. */
+  async list(): Promise<Surah[]> {
+    const data = await this.http.get<SurahListEnvelope>('/surah');
+    return data.surah;
   }
 
-  getById(id: number): Promise<SurahItem> {
-    validateSurah(id);
-    return this.http.get(`/surah/${id}`);
+  /** `GET /surah/:id` — fetch a surah by its number (1-114). */
+  getById(id: number): Promise<Surah> {
+    ensureSurahNumber(id);
+    return this.http.get<Surah>(`/surah/${id}`);
   }
 
-  search(name: string): Promise<SurahItem[]> {
-    validateNonEmptyString('name', name);
-    return this.http.get('/surah/search', { query: { name } });
+  /** `GET /surah/search?name=…` — search a surah by name (Arabic or English). */
+  search(name: string): Promise<Surah[]> {
+    ensureNonEmptyString('name', name);
+    return this.http.get<Surah[]>('/surah/search', { query: { name } });
   }
 }

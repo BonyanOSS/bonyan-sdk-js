@@ -1,80 +1,125 @@
 import type { BonyanErrorBody, BonyanErrorCode } from './types.js';
 
-export class ApiError extends Error {
-  readonly name: string = 'ApiError';
+/**
+ * Thrown when the Bonyan API returns a non-2xx response.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.reciters.getById(999_999);
+ * } catch (error) {
+ *   if (error instanceof BonyanApiError) {
+ *     console.error(error.status, error.code, error.requestId);
+ *   }
+ * }
+ * ```
+ */
+export class BonyanApiError extends Error {
+  readonly name = 'BonyanApiError';
   readonly status: number;
   readonly statusText: string | undefined;
-  readonly body?: unknown;
-  readonly retryAfterMs: number | undefined;
-
-  constructor(params: {
-    status: number;
-    statusText?: string | undefined;
-    body?: unknown;
-    message?: string | undefined;
-    retryAfterMs?: number | undefined;
-  }) {
-    super(params.message ?? getApiErrorMessage(params.status, params.statusText, params.body));
-    this.status = params.status;
-    this.statusText = params.statusText;
-    this.body = params.body;
-    this.retryAfterMs = params.retryAfterMs;
-  }
-}
-
-export class NetworkError extends Error {
-  readonly name: string = 'NetworkError';
-  readonly cause?: unknown;
-
-  constructor(message = 'Bonyan API request failed', cause?: unknown) {
-    super(message);
-    this.cause = cause;
-  }
-}
-
-export class ValidationError extends Error {
-  readonly name: string = 'ValidationError';
-  readonly field: string | undefined;
-
-  constructor(message: string, field?: string) {
-    super(message);
-    this.field = field;
-  }
-}
-
-export class BonyanApiError extends ApiError {
-  readonly name: string = 'BonyanApiError';
   readonly code: BonyanErrorCode | undefined;
   readonly requestId: string | undefined;
+  readonly retryAfterMs: number | undefined;
+  readonly body: unknown;
 
   constructor(params: {
     status: number;
+    message: string;
     statusText?: string | undefined;
-    body?: unknown;
-    message?: string | undefined;
+    code?: BonyanErrorCode | undefined;
+    requestId?: string | undefined;
     retryAfterMs?: number | undefined;
+    body?: unknown;
   }) {
-    super(params);
-    const errorBody = isBonyanErrorBody(params.body) ? params.body : undefined;
-    this.code = errorBody?.error?.code;
-    this.requestId = errorBody?.error?.requestId;
+    super(params.message);
+    this.status = params.status;
+    this.statusText = params.statusText;
+    this.code = params.code;
+    this.requestId = params.requestId;
+    this.retryAfterMs = params.retryAfterMs;
+    this.body = params.body;
   }
 
   static fromResponse(
     status: number,
     body: unknown,
-    statusText?: string | undefined,
-    retryAfterMs?: number | undefined,
+    statusText?: string,
+    retryAfterMs?: number,
   ): BonyanApiError {
-    return new BonyanApiError({ status, statusText, body, retryAfterMs });
+    const errorBody = isBonyanErrorBody(body) ? body : undefined;
+    const message =
+      errorBody?.error?.message ??
+      errorBody?.message ??
+      `Bonyan API request failed with status ${status}${statusText ? ` ${statusText}` : ''}`;
+
+    return new BonyanApiError({
+      status,
+      message,
+      ...(statusText !== undefined && { statusText }),
+      ...(errorBody?.error?.code !== undefined && { code: errorBody.error.code }),
+      ...(errorBody?.error?.requestId !== undefined && { requestId: errorBody.error.requestId }),
+      ...(retryAfterMs !== undefined && { retryAfterMs }),
+      body,
+    });
   }
 }
 
-export class BonyanRequestError extends NetworkError {
-  readonly name: string = 'BonyanRequestError';
+/**
+ * Thrown when a request fails before reaching the API (network error, timeout, DNS).
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.reciters.list();
+ * } catch (error) {
+ *   if (error instanceof BonyanRequestError) {
+ *     console.error('Network problem:', error.message);
+ *   }
+ * }
+ * ```
+ */
+export class BonyanRequestError extends Error {
+  readonly name = 'BonyanRequestError';
+  readonly cause: unknown;
+
+  constructor(message = 'Bonyan API request failed', cause?: unknown) {
+    super(message);
+    this.cause = cause;
+  }
 
   static from(error: unknown): BonyanRequestError {
-    return new BonyanRequestError(getNetworkErrorMessage(error), error);
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return new BonyanRequestError('Bonyan API request timed out', error);
+    }
+    if (error instanceof Error) {
+      return new BonyanRequestError(error.message, error);
+    }
+    return new BonyanRequestError('Bonyan API request failed', error);
+  }
+}
+
+/**
+ * Thrown when an argument fails client-side validation before a request is sent.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   await client.surah.getById(0);
+ * } catch (error) {
+ *   if (error instanceof ValidationError) {
+ *     console.error(`Invalid ${error.field}: ${error.message}`);
+ *   }
+ * }
+ * ```
+ */
+export class ValidationError extends Error {
+  readonly name = 'ValidationError';
+  readonly field: string | undefined;
+
+  constructor(message: string, field?: string) {
+    super(message);
+    this.field = field;
   }
 }
 
@@ -86,30 +131,15 @@ export function isBonyanRequestError(error: unknown): error is BonyanRequestErro
   return error instanceof BonyanRequestError;
 }
 
-function getApiErrorMessage(status: number, statusText?: string, body?: unknown): string {
-  if (isBonyanErrorBody(body)) {
-    return body.error?.message ?? body.message ?? `Bonyan API request failed with status ${status}`;
-  }
-
-  if (typeof body === 'object' && body !== null && 'message' in body && typeof body.message === 'string') {
-    return body.message;
-  }
-
-  return `Bonyan API request failed with status ${status}${statusText ? ` ${statusText}` : ''}`;
-}
-
-function getNetworkErrorMessage(error: unknown): string {
-  if (error instanceof DOMException && error.name === 'AbortError') {
-    return 'Bonyan API request timed out';
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return 'Bonyan API request failed';
+export function isValidationError(error: unknown): error is ValidationError {
+  return error instanceof ValidationError;
 }
 
 function isBonyanErrorBody(value: unknown): value is BonyanErrorBody {
-  return typeof value === 'object' && value !== null && 'success' in value && value.success === false;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'success' in value &&
+    (value as { success: unknown }).success === false
+  );
 }
