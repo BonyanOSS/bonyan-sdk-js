@@ -1,7 +1,7 @@
 {
   "name": "@bonyanoss/bonyan-api",
-  "version": "0.1.0",
-  "description": "Official JavaScript and TypeScript SDK for Bonyan-API.",
+  "version": "1.0.0",
+  "description": "Official JavaScript and TypeScript SDK for Bonyan-API — Quran, Azkar, Hadith, Tafsir, Prayer times, Hijri, Qibla.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -12,15 +12,20 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
-    "test": "vitest",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "prettier --check . && tsc --noEmit",
+    "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "prepublishOnly": "pnpm build && pnpm test && pnpm typecheck"
+    "clean": "rimraf dist coverage",
+    "prepublishOnly": "pnpm clean && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "repository": {
     "type": "git",
@@ -35,6 +40,13 @@
     "bonyanoss",
     "islamic",
     "quran",
+    "quran-api",
+    "azkar",
+    "hadith",
+    "tafsir",
+    "prayer-times",
+    "hijri",
+    "qibla",
     "reciters",
     "typescript",
     "sdk"
@@ -42,10 +54,13 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "sideEffects": false,
   "engines": {
@@ -53,8 +68,15 @@
   },
   "packageManager": "pnpm@10.33.4",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.5",
     "prettier": "^3.8.3",
+    "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.6"

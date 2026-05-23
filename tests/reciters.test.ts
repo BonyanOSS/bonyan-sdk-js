@@ -1,99 +1,68 @@
-import { describe, expect, it, vi } from 'vitest';
-import { BonyanApiError, BonyanClient } from '../src/index.js';
-import type { BonyanFetch } from '../src/types.js';
+import { describe, expect, it } from 'vitest';
+import { BonyanApiError } from '../src/index.js';
+import { TEST_BASE_URL, fail, mockClient, ok } from './helpers.js';
 
-function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
-  return new Response(JSON.stringify(body), {
-    headers: { 'content-type': 'application/json' },
-    ...init,
-  });
-}
-
-describe('reciters resource', () => {
-  it('lists reciters and unwraps the API response data', async () => {
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        success: true,
-        data: {
-          reciters: [
-            {
-              id: 1,
-              name: 'Abdul Basit',
-              apiName: 'mp3quran.net',
-            },
-          ],
-        },
+describe('RecitersResource', () => {
+  it('list() unwraps { reciters } from the envelope', async () => {
+    const { client, fetchMock } = mockClient(
+      ok({
+        reciters: [{ id: 1, name: 'Abdul Basit', apiName: 'mp3quran.net' }],
       }),
-    ) as unknown as BonyanFetch;
-
-    const client = new BonyanClient({
-      baseUrl: 'https://api.bonyanoss.org/bonyan-api/v1',
-      fetch: fetchMock,
-    });
+    );
 
     await expect(client.reciters.list()).resolves.toEqual([
-      {
-        id: 1,
-        name: 'Abdul Basit',
-        apiName: 'mp3quran.net',
-      },
+      { id: 1, name: 'Abdul Basit', apiName: 'mp3quran.net' },
     ]);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.bonyanoss.org/bonyan-api/v1/reciters',
-      expect.objectContaining({
-        headers: { Accept: 'application/json' },
-      }),
+      `${TEST_BASE_URL}/reciters`,
+      expect.objectContaining({ method: 'GET' }),
     );
   });
 
-  it('searches reciters by name', async () => {
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        success: true,
-        data: [],
-      }),
-    ) as unknown as BonyanFetch;
+  it('getById() validates and encodes the id', async () => {
+    const { client, fetchMock } = mockClient(ok({ id: 1, name: 'Reciter', apiName: 'mp3quran.net' }));
 
-    const client = new BonyanClient({
-      baseUrl: 'https://api.bonyanoss.org/bonyan-api/v1/',
-      fetch: fetchMock,
-    });
+    await client.reciters.getById(1);
+    expect(fetchMock).toHaveBeenCalledWith(`${TEST_BASE_URL}/reciters/1`, expect.anything());
+
+    await expect(client.reciters.getById(0)).rejects.toThrow(/integer between 1/);
+    await expect(client.reciters.getById(1.5)).rejects.toThrow(/integer between 1/);
+  });
+
+  it('search() URL-encodes the Arabic query', async () => {
+    const { client, fetchMock } = mockClient(ok([]));
 
     await client.reciters.search('العفاسي');
-
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.bonyanoss.org/bonyan-api/v1/reciters/search?name=%D8%A7%D9%84%D8%B9%D9%81%D8%A7%D8%B3%D9%8A',
-      expect.any(Object),
+      `${TEST_BASE_URL}/reciters/search?name=%D8%A7%D9%84%D8%B9%D9%81%D8%A7%D8%B3%D9%8A`,
+      expect.anything(),
     );
+
+    await expect(client.reciters.search('')).rejects.toThrow(/non-empty/);
+    await expect(client.reciters.search('   ')).rejects.toThrow(/non-empty/);
   });
 
-  it('throws a typed API error for non-2xx responses', async () => {
-    const fetchMock = vi.fn(async () =>
-      jsonResponse(
-        {
-          success: false,
-          message: 'Reciter not found',
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Reciter not found',
-            requestId: 'req_123',
-          },
-        },
-        { status: 404 },
-      ),
-    ) as unknown as BonyanFetch;
+  it('getSurah() validates reciter id and surah number', async () => {
+    const { client, fetchMock } = mockClient(ok({ reciter: 'X', surah: 1, audio: 'https://…' }));
 
-    const client = new BonyanClient({
-      baseUrl: 'https://api.bonyanoss.org/bonyan-api/v1',
-      fetch: fetchMock,
-    });
+    await client.reciters.getSurah(1, 1);
+    expect(fetchMock).toHaveBeenCalledWith(`${TEST_BASE_URL}/reciters/1/surah/1`, expect.anything());
 
-    await expect(client.reciters.get(999)).rejects.toMatchObject({
+    await expect(client.reciters.getSurah(1, 115)).rejects.toThrow(/between 1 and 114/);
+    await expect(client.reciters.getSurah(-1, 1)).rejects.toThrow(/integer between 1/);
+  });
+
+  it('throws BonyanApiError on a 404 response with code and requestId', async () => {
+    const { client } = mockClient(fail(404, 'Reciter not found', 'NOT_FOUND', 'req_123'));
+
+    await expect(client.reciters.getById(999)).rejects.toMatchObject({
       name: 'BonyanApiError',
       status: 404,
       code: 'NOT_FOUND',
       requestId: 'req_123',
-    } satisfies Partial<BonyanApiError>);
+      message: 'Reciter not found',
+    });
+    await expect(client.reciters.getById(999)).rejects.toBeInstanceOf(BonyanApiError);
   });
 });
