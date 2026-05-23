@@ -27,7 +27,7 @@ Be kind, be inclusive, prefer code over opinions. By participating you agree to 
 
 ## Project layout
 
-```
+```txt
 bonyan-sdk-js/
 ├── src/
 │   ├── client.ts          # BonyanClient — public entry
@@ -212,7 +212,7 @@ Aim for ≥ 80% coverage (enforced in CI).
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```md
 <type>(<scope>): <short summary>
 ```
 
