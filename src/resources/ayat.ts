@@ -43,13 +43,13 @@ export class AyatResource extends BaseResource {
   }
 
   /** `GET /ayat/:id` — fetch an aya by its global number (1-6236). */
-  getById(id: number): Promise<AyaWithSurah> {
+  async getById(id: number): Promise<AyaWithSurah> {
     ensureIntegerInRange('id', id, 1, TOTAL_AYAT);
     return this.http.get<AyaWithSurah>(`/ayat/${id}`);
   }
 
   /** `GET /ayat/:surah/aya/:aya` — fetch an aya by surah number and verse number. */
-  getBySurah(surah: number, aya: number): Promise<AyaWithSurah> {
+  async getBySurah(surah: number, aya: number): Promise<AyaWithSurah> {
     ensureSurahNumber(surah);
     ensureAyaNumber(aya);
     return this.http.get<AyaWithSurah>(`/ayat/${surah}/aya/${aya}`);

@@ -1,10 +1,4 @@
-import type {
-  AzkarCategory,
-  AzkarCategorySummary,
-  AzkarItem,
-  AzkarSearchHit,
-  AzkarSearchResult,
-} from '../types.js';
+import type { AzkarCategory, AzkarCategorySummary, AzkarItem, AzkarSearchHit, AzkarSearchResult } from '../types.js';
 import { ensureLimit, ensureNonEmptyString } from '../validation.js';
 import { BaseResource } from './base.js';
 
@@ -46,7 +40,7 @@ export class AzkarResource extends BaseResource {
   }
 
   /** `GET /azkar/:category` — fetch every zikr in a category. */
-  getByCategory(category: string): Promise<AzkarCategory> {
+  async getByCategory(category: string): Promise<AzkarCategory> {
     ensureNonEmptyString('category', category);
     return this.http.get<AzkarCategory>(`/azkar/${encodeURIComponent(category)}`);
   }
@@ -62,7 +56,7 @@ export class AzkarResource extends BaseResource {
   }
 
   /** `GET /azkar/random` — return a random zikr from any category. */
-  random(): Promise<{ category: string; item: AzkarItem }> {
+  async random(): Promise<{ category: string; item: AzkarItem }> {
     return this.http.get<AzkarRandomEnvelope>('/azkar/random');
   }
 }

@@ -17,7 +17,7 @@ export type PrayerTimesOptions = PrayerLocation;
  */
 export class PrayerResource extends BaseResource {
   /** `GET /prayer/times` — prayer timings for a given location and date. */
-  getTimes(options: PrayerTimesOptions): Promise<PrayerTimings> {
+  async getTimes(options: PrayerTimesOptions): Promise<PrayerTimings> {
     ensurePrayerLocation(options);
     return this.http.get<PrayerTimings>('/prayer/times', {
       query: {

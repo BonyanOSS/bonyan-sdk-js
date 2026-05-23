@@ -1,36 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import { ValidationError } from '../src/index.js';
-import { mockClient, ok } from './helpers.js';
-
-const BASE = 'https://api.bonyanoss.org/bonyan-api/v1';
+import { TEST_BASE_URL, mockClient, ok } from './helpers.js';
 
 describe('SurahResource', () => {
   it('list() returns the surah array', async () => {
     const { client } = mockClient(ok({ surah: [{ id: 1, name: 'Al-Fatiha', apiName: 'quran.com' }] }));
-    await expect(client.surah.list()).resolves.toEqual([
-      { id: 1, name: 'Al-Fatiha', apiName: 'quran.com' },
-    ]);
+    await expect(client.surah.list()).resolves.toEqual([{ id: 1, name: 'Al-Fatiha', apiName: 'quran.com' }]);
   });
 
   it('getById() validates 1-114', async () => {
     const { client } = mockClient(ok({ id: 1, name: 'A', apiName: 'quran.com' }));
     await client.surah.getById(1);
-    await expect(() => client.surah.getById(115)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.surah.getById(115)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
 describe('AyatResource', () => {
   it('getById() validates global range', async () => {
-    const { client } = mockClient(ok({ surahNumber: 1, surahName: 'A', aya: { number: 1, text: '', numberInSurah: 1 } }));
+    const { client } = mockClient(
+      ok({ surahNumber: 1, surahName: 'A', aya: { number: 1, text: '', numberInSurah: 1 } }),
+    );
     await client.ayat.getById(1);
-    await expect(() => client.ayat.getById(0)).rejects.toBeInstanceOf(ValidationError);
-    await expect(() => client.ayat.getById(7000)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.ayat.getById(0)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.ayat.getById(7000)).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('getBySurah() validates surah and aya', async () => {
     const { client, fetchMock } = mockClient(ok({ surahNumber: 2, surahName: 'Al-Baqarah', aya: {} }));
     await client.ayat.getBySurah(2, 255);
-    expect(fetchMock).toHaveBeenCalledWith(`${BASE}/ayat/2/aya/255`, expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith(`${TEST_BASE_URL}/ayat/2/aya/255`, expect.anything());
   });
 
   it('search() reshapes the {total, data} envelope', async () => {
@@ -42,24 +40,20 @@ describe('AyatResource', () => {
 
   it('search() enforces limit ≤ 500', async () => {
     const { client } = mockClient(ok({ total: 0, data: [] }));
-    await expect(() => client.ayat.search('x', { limit: 501 })).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.ayat.search('x', { limit: 501 })).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
 describe('AzkarResource', () => {
   it('listCategories() returns the categories array', async () => {
-    const { client } = mockClient(
-      ok({ categories: [{ name: 'morning', count: 10, apiName: 'hisnmuslim.com' }] }),
-    );
+    const { client } = mockClient(ok({ categories: [{ name: 'morning', count: 10, apiName: 'hisnmuslim.com' }] }));
     await expect(client.azkar.listCategories()).resolves.toEqual([
       { name: 'morning', count: 10, apiName: 'hisnmuslim.com' },
     ]);
   });
 
   it('getByCategory() URL-encodes the category', async () => {
-    const { client, fetchMock } = mockClient(
-      ok({ category: 'morning', items: [], apiName: 'hisnmuslim.com' }),
-    );
+    const { client, fetchMock } = mockClient(ok({ category: 'morning', items: [], apiName: 'hisnmuslim.com' }));
     await client.azkar.getByCategory('أذكار الصباح');
     expect(fetchMock.mock.calls[0]![0]).toContain('/azkar/%D8%A3');
   });
@@ -89,8 +83,8 @@ describe('HadithResource', () => {
 
   it('getByNumber() validates inputs', async () => {
     const { client } = mockClient(ok({}));
-    await expect(() => client.hadith.getByNumber('', 1)).rejects.toBeInstanceOf(ValidationError);
-    await expect(() => client.hadith.getByNumber('bukhari', 0)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.hadith.getByNumber('', 1)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.hadith.getByNumber('bukhari', 0)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
@@ -105,8 +99,8 @@ describe('TafsirResource', () => {
 
   it('forAya() validates all three inputs', async () => {
     const { client } = mockClient(ok({}));
-    await expect(() => client.tafsir.forAya('', 1, 1)).rejects.toBeInstanceOf(ValidationError);
-    await expect(() => client.tafsir.forAya('ar.muyassar', 115, 1)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.tafsir.forAya('', 1, 1)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.tafsir.forAya('ar.muyassar', 115, 1)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
@@ -129,8 +123,8 @@ describe('PrayerResource', () => {
 
   it('getTimes() rejects incomplete options', async () => {
     const { client } = mockClient(ok({}));
-    await expect(() => client.prayer.getTimes({ latitude: 21.42 })).rejects.toBeInstanceOf(ValidationError);
-    await expect(() => client.prayer.getTimes({})).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.prayer.getTimes({ latitude: 21.42 })).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.prayer.getTimes({})).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
@@ -150,7 +144,7 @@ describe('HijriResource', () => {
 
   it('rejects malformed dates', async () => {
     const { client } = mockClient(ok({}));
-    await expect(() => client.hijri.toGregorian('2026-01-01')).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.hijri.toGregorian('2026-01-01')).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
@@ -165,7 +159,7 @@ describe('QiblaResource', () => {
     expect(url).toContain('latitude=40.7128');
     expect(url).toContain('longitude=-74.006');
 
-    await expect(() => client.qibla.getDirection(91, 0)).rejects.toBeInstanceOf(ValidationError);
-    await expect(() => client.qibla.getDirection(0, 181)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.qibla.getDirection(91, 0)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.qibla.getDirection(0, 181)).rejects.toBeInstanceOf(ValidationError);
   });
 });

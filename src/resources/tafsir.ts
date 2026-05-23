@@ -19,12 +19,12 @@ export interface TafsirSurahOptions {
  */
 export class TafsirResource extends BaseResource {
   /** `GET /tafsir` — list available tafsir editions. */
-  listEditions(): Promise<TafsirEdition[]> {
+  async listEditions(): Promise<TafsirEdition[]> {
     return this.http.get<TafsirEdition[]>('/tafsir');
   }
 
   /** `GET /tafsir/:edition/:surah` — tafsir for an entire surah (or a single aya). */
-  forSurah(edition: string, surah: number, options: TafsirSurahOptions = {}): Promise<TafsirItem[] | TafsirItem> {
+  async forSurah(edition: string, surah: number, options: TafsirSurahOptions = {}): Promise<TafsirItem[] | TafsirItem> {
     ensureNonEmptyString('edition', edition);
     ensureSurahNumber(surah);
     if (options.aya !== undefined) ensureAyaNumber(options.aya);
@@ -34,7 +34,7 @@ export class TafsirResource extends BaseResource {
   }
 
   /** `GET /tafsir/:edition/:surah/:aya` — tafsir for a specific aya. */
-  forAya(edition: string, surah: number, aya: number): Promise<TafsirItem> {
+  async forAya(edition: string, surah: number, aya: number): Promise<TafsirItem> {
     ensureNonEmptyString('edition', edition);
     ensureSurahNumber(surah);
     ensureAyaNumber(aya);

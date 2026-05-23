@@ -25,19 +25,19 @@ export class RecitersResource extends BaseResource {
   }
 
   /** `GET /reciters/:id` — fetch a single reciter by numeric id. */
-  getById(id: number): Promise<Reciter> {
+  async getById(id: number): Promise<Reciter> {
     ensurePositiveInteger('id', id);
     return this.http.get<Reciter>(`/reciters/${id}`);
   }
 
   /** `GET /reciters/search?name=…` — fuzzy search by reciter name (Arabic or English). */
-  search(name: string): Promise<Reciter[]> {
+  async search(name: string): Promise<Reciter[]> {
     ensureNonEmptyString('name', name);
     return this.http.get<Reciter[]>('/reciters/search', { query: { name } });
   }
 
   /** `GET /reciters/:id/surah/:surah` — direct audio URL for one reciter+surah. */
-  getSurah(reciterId: number, surah: number): Promise<ReciterAudio> {
+  async getSurah(reciterId: number, surah: number): Promise<ReciterAudio> {
     ensurePositiveInteger('reciterId', reciterId);
     ensureSurahNumber(surah);
     return this.http.get<ReciterAudio>(`/reciters/${reciterId}/surah/${surah}`);

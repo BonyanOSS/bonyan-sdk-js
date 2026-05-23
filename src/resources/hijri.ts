@@ -16,18 +16,18 @@ import { BaseResource } from './base.js';
  */
 export class HijriResource extends BaseResource {
   /** `GET /hijri/today` — today's date in both calendars. */
-  today(): Promise<HijriDate> {
+  async today(): Promise<HijriDate> {
     return this.http.get<HijriDate>('/hijri/today');
   }
 
   /** `GET /hijri/from-gregorian?date=DD-MM-YYYY` — convert a Gregorian date to Hijri. */
-  fromGregorian(date?: string): Promise<HijriDate> {
+  async fromGregorian(date?: string): Promise<HijriDate> {
     if (date !== undefined) ensureDate(date);
     return this.http.get<HijriDate>('/hijri/from-gregorian', { query: { date } });
   }
 
   /** `GET /hijri/to-gregorian?date=DD-MM-YYYY` — convert a Hijri date to Gregorian. */
-  toGregorian(date: string): Promise<HijriDate> {
+  async toGregorian(date: string): Promise<HijriDate> {
     ensureDate(date);
     return this.http.get<HijriDate>('/hijri/to-gregorian', { query: { date } });
   }

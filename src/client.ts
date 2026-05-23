@@ -11,7 +11,7 @@ import { TafsirResource } from './resources/tafsir.js';
 import type { BonyanClientOptions, HealthStatus } from './types.js';
 
 /** Official Bonyan-API endpoint. */
-export const DEFAULT_BASE_URL = 'https://api.bonyanoss.org/bonyan-api/v1';
+export const DEFAULT_BASE_URL = 'https://api.bonyanoss.org';
 /** Default per-request timeout (10 seconds). */
 export const DEFAULT_TIMEOUT_MS = 10_000;
 /** Default retry attempts for transient errors (5xx, 429, network). */

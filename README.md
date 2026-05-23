@@ -83,7 +83,7 @@ const health = await client.health();
 import { BonyanClient } from '@bonyanoss/bonyan-api';
 
 const client = new BonyanClient({
-  baseUrl: 'https://api.bonyanoss.org/bonyan-api/v1', // default
+  baseUrl: 'https://api.bonyanoss.org', // default
   timeoutMs: 10_000,                                  // default 10 s
   retry: 3,                                           // default 3
   headers: { 'X-App-Id': 'my-app' },                  // optional
@@ -94,7 +94,7 @@ const client = new BonyanClient({
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `baseUrl` | `string` | `https://api.bonyanoss.org/bonyan-api/v1` | Base URL of the API |
+| `baseUrl` | `string` | `https://api.bonyanoss.org` | Base URL of the API |
 | `timeoutMs` | `number` | `10_000` | Per-request timeout in milliseconds |
 | `retry` | `number` | `3` | Retry attempts on 5xx / 429 / network errors |
 | `headers` | `Record<string, string>` | — | Extra headers applied to every request |

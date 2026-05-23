@@ -24,13 +24,13 @@ export class SurahResource extends BaseResource {
   }
 
   /** `GET /surah/:id` — fetch a surah by its number (1-114). */
-  getById(id: number): Promise<Surah> {
+  async getById(id: number): Promise<Surah> {
     ensureSurahNumber(id);
     return this.http.get<Surah>(`/surah/${id}`);
   }
 
   /** `GET /surah/search?name=…` — search a surah by name (Arabic or English). */
-  search(name: string): Promise<Surah[]> {
+  async search(name: string): Promise<Surah[]> {
     ensureNonEmptyString('name', name);
     return this.http.get<Surah[]>('/surah/search', { query: { name } });
   }

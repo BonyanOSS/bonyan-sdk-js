@@ -13,7 +13,7 @@ import { BaseResource } from './base.js';
  */
 export class QiblaResource extends BaseResource {
   /** `GET /qibla?latitude=…&longitude=…` — qibla direction from a coordinate. */
-  getDirection(latitude: number, longitude: number): Promise<QiblaInfo> {
+  async getDirection(latitude: number, longitude: number): Promise<QiblaInfo> {
     ensureLatitude(latitude);
     ensureLongitude(longitude);
     return this.http.get<QiblaInfo>('/qibla', { query: { latitude, longitude } });

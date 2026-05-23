@@ -198,7 +198,7 @@ it('list() returns the unwrapped payload', async () => {
   const { client, fetchMock } = mockClient(ok({ items: [] }));
   await client.myResource.list();
   expect(fetchMock).toHaveBeenCalledWith(
-    'https://api.bonyanoss.org/bonyan-api/v1/myresource',
+    'https://api.bonyanoss.org/myresource',
     expect.anything(),
   );
 });

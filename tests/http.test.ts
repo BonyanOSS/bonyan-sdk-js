@@ -5,11 +5,13 @@ import { TEST_BASE_URL, fail, jsonResponse, ok } from './helpers.js';
 
 describe('HttpClient', () => {
   it('retries on 5xx with exponential backoff then succeeds', async () => {
-    const fetchMock = vi
-      .fn<BonyanFetch>()
-      .mockResolvedValueOnce(fail(500, 'boom', 'INTERNAL_SERVER_ERROR'))
-      .mockResolvedValueOnce(fail(503, 'boom', 'ALL_SOURCES_FAILED'))
-      .mockResolvedValueOnce(ok({ reciters: [] }));
+    const responses = [
+      () => fail(500, 'boom', 'INTERNAL_SERVER_ERROR'),
+      () => fail(503, 'boom', 'ALL_SOURCES_FAILED'),
+      () => ok({ reciters: [] }),
+    ];
+    let i = 0;
+    const fetchMock = vi.fn<BonyanFetch>(async () => responses[i++]!());
 
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 3, fetch: fetchMock });
     await expect(client.reciters.list()).resolves.toEqual([]);
@@ -17,7 +19,7 @@ describe('HttpClient', () => {
   });
 
   it('does not retry on 4xx (except 429)', async () => {
-    const fetchMock = vi.fn<BonyanFetch>().mockResolvedValue(fail(400, 'bad'));
+    const fetchMock = vi.fn<BonyanFetch>(async () => fail(400, 'bad'));
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 3, fetch: fetchMock });
 
     await expect(client.reciters.getById(1)).rejects.toBeInstanceOf(BonyanApiError);
@@ -25,15 +27,16 @@ describe('HttpClient', () => {
   });
 
   it('retries on 429 honoring retry-after header', async () => {
-    const fetchMock = vi
-      .fn<BonyanFetch>()
-      .mockResolvedValueOnce(
+    const responses = [
+      () =>
         jsonResponse(
           { success: false, message: 'rate limited', error: { code: 'RATE_LIMITED' } },
           { status: 429, headers: { 'content-type': 'application/json', 'retry-after': '0' } },
         ),
-      )
-      .mockResolvedValueOnce(ok({ id: 1, name: 'X', apiName: 'mp3quran.net' }));
+      () => ok({ id: 1, name: 'X', apiName: 'mp3quran.net' }),
+    ];
+    let i = 0;
+    const fetchMock = vi.fn<BonyanFetch>(async () => responses[i++]!());
 
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 1, fetch: fetchMock });
     await expect(client.reciters.getById(1)).resolves.toMatchObject({ id: 1 });
@@ -41,7 +44,9 @@ describe('HttpClient', () => {
   });
 
   it('wraps network errors as BonyanRequestError', async () => {
-    const fetchMock = vi.fn<BonyanFetch>().mockRejectedValue(new TypeError('fetch failed'));
+    const fetchMock = vi.fn<BonyanFetch>(async () => {
+      throw new TypeError('fetch failed');
+    });
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
 
     await expect(client.reciters.list()).rejects.toBeInstanceOf(BonyanRequestError);
@@ -51,9 +56,7 @@ describe('HttpClient', () => {
     const fetchMock = vi.fn<BonyanFetch>(
       (_url, init) =>
         new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () =>
-            reject(new DOMException('Aborted', 'AbortError')),
-          );
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
         }),
     );
 
@@ -65,7 +68,7 @@ describe('HttpClient', () => {
   });
 
   it('sends default Accept header and merges custom headers', async () => {
-    const fetchMock = vi.fn<BonyanFetch>().mockResolvedValue(ok({ reciters: [] }));
+    const fetchMock = vi.fn<BonyanFetch>(async () => ok({ reciters: [] }));
     const client = new BonyanClient({
       baseUrl: TEST_BASE_URL,
       retry: 0,
@@ -82,7 +85,7 @@ describe('HttpClient', () => {
   });
 
   it('strips trailing slashes from baseUrl', async () => {
-    const fetchMock = vi.fn<BonyanFetch>().mockResolvedValue(ok({ reciters: [] }));
+    const fetchMock = vi.fn<BonyanFetch>(async () => ok({ reciters: [] }));
     const client = new BonyanClient({ baseUrl: `${TEST_BASE_URL}////`, retry: 0, fetch: fetchMock });
 
     await client.reciters.list();
@@ -90,7 +93,7 @@ describe('HttpClient', () => {
   });
 
   it('omits null/undefined query parameters but keeps zero and false', async () => {
-    const fetchMock = vi.fn<BonyanFetch>().mockResolvedValue(ok([]));
+    const fetchMock = vi.fn<BonyanFetch>(async () => ok([]));
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
 
     await client.hadith.getBook('bukhari', { from: 1, to: 1 });

@@ -41,12 +41,7 @@ export class BonyanApiError extends Error {
     this.body = params.body;
   }
 
-  static fromResponse(
-    status: number,
-    body: unknown,
-    statusText?: string,
-    retryAfterMs?: number,
-  ): BonyanApiError {
+  static fromResponse(status: number, body: unknown, statusText?: string, retryAfterMs?: number): BonyanApiError {
     const errorBody = isBonyanErrorBody(body) ? body : undefined;
     const message =
       errorBody?.error?.message ??
