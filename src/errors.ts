@@ -41,11 +41,18 @@ export class BonyanApiError extends Error {
     this.body = params.body;
   }
 
-  static fromResponse(status: number, body: unknown, statusText?: string, retryAfterMs?: number): BonyanApiError {
+  static fromResponse(
+    status: number,
+    body: unknown,
+    statusText?: string,
+    retryAfterMs?: number,
+  ): BonyanApiError {
     const errorBody = isBonyanErrorBody(body) ? body : undefined;
+    const fallback = extractFallbackMessage(body);
     const message =
       errorBody?.error?.message ??
       errorBody?.message ??
+      fallback ??
       `Bonyan API request failed with status ${status}${statusText ? ` ${statusText}` : ''}`;
 
     return new BonyanApiError({
@@ -58,6 +65,19 @@ export class BonyanApiError extends Error {
       body,
     });
   }
+}
+
+/**
+ * Best-effort message extraction for non-envelope error bodies — proxy
+ * timeouts, raw HTML pages, plain-text 5xx responses, etc.
+ */
+function extractFallbackMessage(body: unknown): string | undefined {
+  if (typeof body === 'string' && body.length > 0) return body;
+  if (typeof body === 'object' && body !== null && 'message' in body) {
+    const candidate = (body as { message: unknown }).message;
+    if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+  }
+  return undefined;
 }
 
 /**

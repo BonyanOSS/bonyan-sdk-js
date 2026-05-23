@@ -10,9 +10,14 @@ describe('RecitersResource', () => {
       }),
     );
 
-    await expect(client.reciters.list()).resolves.toEqual([{ id: 1, name: 'Abdul Basit', apiName: 'mp3quran.net' }]);
+    await expect(client.reciters.list()).resolves.toEqual([
+      { id: 1, name: 'Abdul Basit', apiName: 'mp3quran.net' },
+    ]);
 
-    expect(fetchMock).toHaveBeenCalledWith(`${TEST_BASE_URL}/reciters`, expect.objectContaining({ method: 'GET' }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${TEST_BASE_URL}/reciters`,
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 
   it('getById() validates and encodes the id', async () => {

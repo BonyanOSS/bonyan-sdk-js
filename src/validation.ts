@@ -2,8 +2,10 @@ import { ValidationError } from './errors.js';
 
 /** Total number of surahs in the Quran. */
 export const TOTAL_SURAH = 114;
-/** Total number of ayat in the Quran. */
+/** Total number of ayat in the Quran (global). */
 export const TOTAL_AYAT = 6236;
+/** Max number of ayat in a single surah (Al-Baqarah holds the record at 286). */
+export const MAX_AYAT_PER_SURAH = 286;
 
 export interface PrayerLocation {
   date?: string;
@@ -18,8 +20,12 @@ export function ensureSurahNumber(value: number): void {
   ensureIntegerInRange('surah', value, 1, TOTAL_SURAH);
 }
 
+/**
+ * Validates a verse number inside a surah (1..286). For the global aya id
+ * (1..6236), call {@link ensureIntegerInRange} with `TOTAL_AYAT` instead.
+ */
 export function ensureAyaNumber(value: number, field = 'aya'): void {
-  ensureIntegerInRange(field, value, 1, TOTAL_AYAT);
+  ensureIntegerInRange(field, value, 1, MAX_AYAT_PER_SURAH);
 }
 
 export function ensurePositiveInteger(field: string, value: number): void {

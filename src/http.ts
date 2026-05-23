@@ -3,9 +3,21 @@ import type { BonyanFetch, BonyanSuccessBody } from './types.js';
 
 type QueryValue = boolean | number | string | null | undefined;
 
-export interface BonyanRequestInit extends Omit<RequestInit, 'method'> {
+/**
+ * Options accepted by {@link HttpClient.get} / {@link HttpClient.raw}.
+ *
+ * `BonyanRequestInit` is intentionally a narrow subset of `RequestInit` —
+ * the SDK only issues GET requests, so `method` and `body` are not exposed.
+ */
+export interface BonyanRequestInit {
+  /** Query string parameters. `null` / `undefined` values are omitted. */
   query?: Record<string, QueryValue>;
+  /** Per-request timeout in milliseconds, overrides the client default. */
   timeoutMs?: number;
+  /** Extra headers — merged on top of the client defaults. */
+  headers?: HeadersInit;
+  /** Caller-supplied AbortSignal — composed with the timeout signal. */
+  signal?: AbortSignal;
 }
 
 export interface HttpClientOptions {
@@ -21,6 +33,11 @@ const DEFAULT_HEADERS: Record<string, string> = {
   Accept: 'application/json',
 };
 
+/**
+ * Thin fetch wrapper used by every resource. Centralizes retry/backoff,
+ * timeouts, header management and envelope unwrapping so individual resources
+ * stay declarative.
+ */
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -40,16 +57,24 @@ export class HttpClient {
     this.fetchFn = options.fetch ?? resolveFetch();
   }
 
+  /** Performs a GET and unwraps the `{ success: true, data: T }` envelope. */
   async get<T>(path: string, options: BonyanRequestInit = {}): Promise<T> {
-    const body = await this.requestEnvelope<T>(path, options);
-    return body.data;
+    const body = await this.request<unknown>(path, options);
+    if (isEnvelope(body)) {
+      return body.data as T;
+    }
+    throw new BonyanRequestError(
+      'Unexpected response from Bonyan API — missing `data` field in envelope',
+      body,
+    );
   }
 
+  /** Performs a GET and returns the parsed body **as-is**, without unwrapping. */
   async raw<T = unknown>(path: string, options: BonyanRequestInit = {}): Promise<T> {
-    return this.requestEnvelope<T>(path, options) as Promise<T>;
+    return this.request<T>(path, options);
   }
 
-  private async requestEnvelope<T>(path: string, options: BonyanRequestInit): Promise<BonyanSuccessBody<T>> {
+  private async request<T>(path: string, options: BonyanRequestInit): Promise<T> {
     const url = buildUrl(this.baseUrl, path, options.query);
     const attempts = this.retry + 1;
     let lastError: unknown;
@@ -59,7 +84,7 @@ export class HttpClient {
         return await this.fetchOnce<T>(url, options);
       } catch (error) {
         lastError = error;
-        if (!shouldRetry(error, attempt, attempts)) {
+        if (!shouldRetry(error, attempt, attempts, options.signal)) {
           throw error;
         }
         const retryAfter = error instanceof BonyanApiError ? error.retryAfterMs : undefined;
@@ -67,23 +92,28 @@ export class HttpClient {
       }
     }
 
-    throw lastError instanceof Error ? lastError : new BonyanRequestError('Bonyan API request failed', lastError);
+    // Defensive: shouldRetry guarantees the loop either returns or throws,
+    // but TypeScript can't see that, so we surface the last error explicitly.
+    throw lastError instanceof Error
+      ? lastError
+      : new BonyanRequestError('Bonyan API request failed', lastError);
   }
 
-  private async fetchOnce<T>(url: string, options: BonyanRequestInit): Promise<BonyanSuccessBody<T>> {
+  private async fetchOnce<T>(url: string, options: BonyanRequestInit): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
-    const signal = options.signal ? mergeSignals(options.signal, controller.signal) : controller.signal;
+    const merged = options.signal
+      ? mergeSignals(options.signal, controller.signal)
+      : { signal: controller.signal };
 
     try {
       const response = await this.fetchFn(url, {
-        ...options,
         method: 'GET',
         headers: { ...this.headers, ...headersToObject(options.headers) },
-        signal,
+        signal: merged.signal,
       });
 
-      const body = await parseResponseBody(response);
+      const body = await safeParseResponseBody(response);
 
       if (!response.ok) {
         throw BonyanApiError.fromResponse(
@@ -94,7 +124,7 @@ export class HttpClient {
         );
       }
 
-      return body as BonyanSuccessBody<T>;
+      return body as T;
     } catch (error) {
       if (error instanceof BonyanApiError) {
         throw error;
@@ -102,6 +132,7 @@ export class HttpClient {
       throw BonyanRequestError.from(error);
     } finally {
       clearTimeout(timeout);
+      merged.cleanup?.();
     }
   }
 }
@@ -138,26 +169,55 @@ function headersToObject(headers: HeadersInit | undefined): Record<string, strin
   return { ...headers };
 }
 
-async function parseResponseBody(response: Response): Promise<unknown> {
+/**
+ * Parses a `Response` body without throwing — returns a deterministic value
+ * (object / string / null) that downstream code can inspect.
+ */
+async function safeParseResponseBody(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') ?? '';
 
-  if (contentType.includes('application/json')) {
-    return response.json();
-  }
-
-  const text = await response.text();
   try {
-    return JSON.parse(text);
+    if (contentType.includes('application/json')) {
+      return await response.json();
+    }
+    const text = await response.text();
+    if (text === '') return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { message: text };
+    }
   } catch {
-    return { message: text };
+    return null;
   }
 }
 
-function shouldRetry(error: unknown, attempt: number, attempts: number): boolean {
+function shouldRetry(
+  error: unknown,
+  attempt: number,
+  attempts: number,
+  userSignal: AbortSignal | undefined,
+): boolean {
   if (attempt >= attempts - 1) return false;
-  if (error instanceof BonyanRequestError) return true;
-  if (error instanceof BonyanApiError) return error.status >= 500 || error.status === 429;
+  // Respect user-initiated aborts: never retry past an explicit cancel.
+  if (userSignal?.aborted) return false;
+
+  if (error instanceof BonyanApiError) {
+    return error.status >= 500 || error.status === 429;
+  }
+  if (error instanceof BonyanRequestError) {
+    // If the request error wraps a user AbortError, don't retry.
+    const cause = error.cause;
+    if (cause instanceof DOMException && cause.name === 'AbortError' && userSignal?.aborted) {
+      return false;
+    }
+    return true;
+  }
   return false;
+}
+
+function isEnvelope(value: unknown): value is BonyanSuccessBody<unknown> {
+  return typeof value === 'object' && value !== null && 'data' in value;
 }
 
 function backoff(attempt: number): number {
@@ -180,15 +240,42 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function mergeSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
+interface MergedSignal {
+  signal: AbortSignal;
+  cleanup?: () => void;
+}
+
+/**
+ * Combines two AbortSignals so the resulting signal aborts as soon as either
+ * input aborts. Uses {@link AbortSignal.any} when available (Node 20+), and
+ * falls back to a manual implementation that **always** removes its listeners
+ * to avoid leaking references when callers reuse a long-lived signal.
+ */
+function mergeSignals(a: AbortSignal, b: AbortSignal): MergedSignal {
   if (typeof AbortSignal.any === 'function') {
-    return AbortSignal.any([a, b]);
+    return { signal: AbortSignal.any([a, b]) };
   }
+
   const controller = new AbortController();
-  const onAbort = (signal: AbortSignal) => () => controller.abort(signal.reason);
-  if (a.aborted) controller.abort(a.reason);
-  else a.addEventListener('abort', onAbort(a), { once: true });
-  if (b.aborted) controller.abort(b.reason);
-  else b.addEventListener('abort', onAbort(b), { once: true });
-  return controller.signal;
+  if (a.aborted) {
+    controller.abort(a.reason);
+    return { signal: controller.signal };
+  }
+  if (b.aborted) {
+    controller.abort(b.reason);
+    return { signal: controller.signal };
+  }
+
+  const onA = () => controller.abort(a.reason);
+  const onB = () => controller.abort(b.reason);
+  a.addEventListener('abort', onA, { once: true });
+  b.addEventListener('abort', onB, { once: true });
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      a.removeEventListener('abort', onA);
+      b.removeEventListener('abort', onB);
+    },
+  };
 }

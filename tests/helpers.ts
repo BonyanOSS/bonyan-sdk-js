@@ -15,7 +15,12 @@ export function ok<T>(data: T, init?: ResponseInit): Response {
   return jsonResponse({ success: true, data }, init);
 }
 
-export function fail(status: number, message: string, code = 'BAD_REQUEST', requestId = 'req_test'): Response {
+export function fail(
+  status: number,
+  message: string,
+  code = 'BAD_REQUEST',
+  requestId = 'req_test',
+): Response {
   return jsonResponse({ success: false, message, error: { code, message, requestId } }, { status });
 }
 

@@ -101,4 +101,59 @@ describe('HttpClient', () => {
     expect(calledUrl).toContain('from=1');
     expect(calledUrl).toContain('to=1');
   });
+
+  it('does NOT retry on user-initiated abort', async () => {
+    const controller = new AbortController();
+    let attempts = 0;
+    const fetchMock = vi.fn<BonyanFetch>(async () => {
+      attempts += 1;
+      controller.abort();
+      throw new DOMException('Aborted', 'AbortError');
+    });
+
+    const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 5, fetch: fetchMock });
+    // Pass the user's signal through a resource by reaching into http directly.
+    await expect(
+      (client as unknown as { http: { get: (p: string, o: object) => Promise<unknown> } }).http.get(
+        '/reciters',
+        { signal: controller.signal },
+      ),
+    ).rejects.toBeInstanceOf(BonyanRequestError);
+    expect(attempts).toBe(1);
+  });
+
+  it('client.health() returns the raw /health body (no envelope unwrap)', async () => {
+    const fetchMock = vi.fn<BonyanFetch>(async () =>
+      jsonResponse({ status: 'ok', code: 200, timestamp: '2026-05-24T00:00:00.000Z' }),
+    );
+    const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
+
+    const health = await client.health();
+    expect(health.status).toBe('ok');
+    expect(health.code).toBe(200);
+    expect(fetchMock.mock.calls[0]![0]).toBe(`${TEST_BASE_URL}/health`);
+  });
+
+  it('handles non-JSON 5xx bodies gracefully', async () => {
+    const fetchMock = vi.fn<BonyanFetch>(
+      async () =>
+        new Response('upstream offline', { status: 502, headers: { 'content-type': 'text/plain' } }),
+    );
+    const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
+
+    await expect(client.reciters.list()).rejects.toMatchObject({
+      name: 'BonyanApiError',
+      status: 502,
+      message: 'upstream offline',
+    });
+  });
+
+  it('does not throw on empty 200 body', async () => {
+    const fetchMock = vi.fn<BonyanFetch>(async () => new Response('', { status: 200 }));
+    const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
+
+    // get() expects an envelope but gets null — we surface that as a runtime issue,
+    // wrapping it in BonyanRequestError so callers can detect it.
+    await expect(client.reciters.list()).rejects.toBeInstanceOf(BonyanRequestError);
+  });
 });

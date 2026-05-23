@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First stable release. The SDK now covers every Bonyan-API endpoint with full TypeScript types, validation, retry/backoff and an open-source-ready project layout.
 
+### Final-review fixes
+
+- `HttpClient.raw()` now actually returns the parsed body (not the envelope), so `client.health()` resolves to `{ status, code, timestamp }`.
+- `HttpClient.get()` raises a typed `BonyanRequestError` when the API returns a body without the expected `data` field instead of throwing a vague `TypeError`.
+- `mergeSignals()` removes its abort listeners on every request, eliminating a slow leak when callers reuse a long-lived `AbortSignal`.
+- User-initiated aborts are no longer retried.
+- `BonyanApiError.fromResponse()` extracts a fallback message from plain-text / non-envelope error bodies (proxy 502, raw text 5xx).
+- `ensureAyaNumber()` now bounds to 1..286 (max ayat in a single surah); use `ensureIntegerInRange('id', id, 1, TOTAL_AYAT)` for the global aya id (1..6236).
+- Removed duplicate `.prettierrc` (kept `.prettierrc.json`).
+- Examples (`examples/node/*.ts`) fixed to match the actual SDK shape (`list()` returns arrays directly, `azkar.listCategories()` not `azkar.categories()`, search results live under `.results` not `.data`).
+
 ### Added
 
 - Nine fully-typed resources covering every Bonyan-API endpoint: `reciters`, `surah`, `ayat`, `azkar`, `tafsir`, `hadith`, `prayer`, `hijri`, `qibla`.

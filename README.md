@@ -135,10 +135,10 @@ const audio = await client.reciters.getSurah(1, 1);
 
 | Method | Endpoint |
 | --- | --- |
-| `client.ayat.list()` | `GET /ayat` *(heavy response)* |
-| `client.ayat.getById(id)` | `GET /ayat/:id` (1-6236) |
-| `client.ayat.getBySurah(surah, aya)` | `GET /ayat/:surah/aya/:aya` |
-| `client.ayat.search(text, { limit })` | `GET /ayat/search?text=…&limit=…` |
+| `client.ayat.list()` | `GET /ayat` *(heavy response — every ayah of every surah)* |
+| `client.ayat.getById(id)` | `GET /ayat/:id` — global id (1..6236) |
+| `client.ayat.getBySurah(surah, aya)` | `GET /ayat/:surah/aya/:aya` — surah (1..114) + aya (1..286) |
+| `client.ayat.search(text, { limit })` | `GET /ayat/search?text=…&limit=…` (max 500) |
 
 ```ts
 const { total, results } = await client.ayat.search('الرحمن', { limit: 50 });
@@ -194,6 +194,12 @@ The `from`/`to` range is capped at **300 items** per request.
 | --- | --- |
 | `client.qibla.getDirection(latitude, longitude)` | `GET /qibla?latitude=…&longitude=…` |
 
+### `health`
+
+| Method | Endpoint |
+| --- | --- |
+| `client.health()` | `GET /health` — returns `{ status, code, timestamp }` (no envelope) |
+
 ---
 
 ## Error handling
@@ -240,10 +246,11 @@ Type guards: `isBonyanApiError`, `isBonyanRequestError`, `isValidationError`.
 Every argument is checked **before** a request is sent:
 
 - `surah` must be an integer in `1..114`
-- `aya` must be an integer in `1..6236`
+- Global aya `id` (used by `ayat.getById`) must be in `1..6236`
+- Per-surah `aya` number (in `ayat.getBySurah`, `tafsir.forAya`) must be in `1..286`
 - `latitude` ∈ `[-90, 90]`, `longitude` ∈ `[-180, 180]`
 - Dates use the `DD-MM-YYYY` format
-- Search `limit` is bounded per endpoint (200 or 500)
+- Search `limit` is bounded per endpoint (200 for `azkar`, 500 for `ayat`)
 - Hadith `from`/`to` range is capped at 300
 
 When validation fails, `ValidationError` is thrown synchronously — no HTTP request is made.

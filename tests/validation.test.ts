@@ -22,10 +22,11 @@ describe('validation', () => {
     expect(() => ensureSurahNumber(1.5)).toThrow(ValidationError);
   });
 
-  it('ensureAyaNumber accepts 1-6236', () => {
+  it('ensureAyaNumber accepts 1..286 (max ayat in any single surah)', () => {
     expect(() => ensureAyaNumber(1)).not.toThrow();
-    expect(() => ensureAyaNumber(6236)).not.toThrow();
-    expect(() => ensureAyaNumber(6237)).toThrow(ValidationError);
+    expect(() => ensureAyaNumber(286)).not.toThrow();
+    expect(() => ensureAyaNumber(287)).toThrow(ValidationError);
+    expect(() => ensureAyaNumber(0)).toThrow(ValidationError);
   });
 
   it('ensurePositiveInteger rejects 0 and negatives', () => {

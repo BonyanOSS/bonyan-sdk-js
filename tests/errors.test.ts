@@ -22,11 +22,18 @@ describe('BonyanApiError', () => {
     expect(error.message).toBe('Reciter not found');
   });
 
-  it('falls back to a synthetic message when the body is not a valid envelope', () => {
+  it('uses a string body as the error message when no envelope is present', () => {
     const error = BonyanApiError.fromResponse(500, 'oops', 'Internal Server Error');
     expect(error.status).toBe(500);
-    expect(error.message).toContain('500');
+    expect(error.message).toBe('oops');
     expect(error.code).toBeUndefined();
+  });
+
+  it('falls back to a synthetic message when the body is null', () => {
+    const error = BonyanApiError.fromResponse(503, null, 'Service Unavailable');
+    expect(error.status).toBe(503);
+    expect(error.message).toContain('503');
+    expect(error.message).toContain('Service Unavailable');
   });
 
   it('exposes retryAfterMs when provided', () => {

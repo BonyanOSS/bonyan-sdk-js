@@ -16,6 +16,15 @@ describe('SurahResource', () => {
 });
 
 describe('AyatResource', () => {
+  it('list() unwraps { surahs } to a flat array', async () => {
+    const { client } = mockClient(
+      ok({ surahs: [{ number: 1, name: 'Al-Fatiha', ayat: [], apiName: 'alquran.cloud' }] }),
+    );
+    const result = await client.ayat.list();
+    expect(Array.isArray(result)).toBe(true);
+    expect(result[0]?.number).toBe(1);
+  });
+
   it('getById() validates global range', async () => {
     const { client } = mockClient(
       ok({ surahNumber: 1, surahName: 'A', aya: { number: 1, text: '', numberInSurah: 1 } }),
@@ -25,10 +34,13 @@ describe('AyatResource', () => {
     await expect(client.ayat.getById(7000)).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('getBySurah() validates surah and aya', async () => {
+  it('getBySurah() validates surah and rejects aya > 286', async () => {
     const { client, fetchMock } = mockClient(ok({ surahNumber: 2, surahName: 'Al-Baqarah', aya: {} }));
     await client.ayat.getBySurah(2, 255);
     expect(fetchMock).toHaveBeenCalledWith(`${TEST_BASE_URL}/ayat/2/aya/255`, expect.anything());
+
+    await expect(client.ayat.getBySurah(2, 287)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.ayat.getBySurah(115, 1)).rejects.toBeInstanceOf(ValidationError);
   });
 
   it('search() reshapes the {total, data} envelope', async () => {
@@ -46,14 +58,18 @@ describe('AyatResource', () => {
 
 describe('AzkarResource', () => {
   it('listCategories() returns the categories array', async () => {
-    const { client } = mockClient(ok({ categories: [{ name: 'morning', count: 10, apiName: 'hisnmuslim.com' }] }));
+    const { client } = mockClient(
+      ok({ categories: [{ name: 'morning', count: 10, apiName: 'hisnmuslim.com' }] }),
+    );
     await expect(client.azkar.listCategories()).resolves.toEqual([
       { name: 'morning', count: 10, apiName: 'hisnmuslim.com' },
     ]);
   });
 
   it('getByCategory() URL-encodes the category', async () => {
-    const { client, fetchMock } = mockClient(ok({ category: 'morning', items: [], apiName: 'hisnmuslim.com' }));
+    const { client, fetchMock } = mockClient(
+      ok({ category: 'morning', items: [], apiName: 'hisnmuslim.com' }),
+    );
     await client.azkar.getByCategory('أذكار الصباح');
     expect(fetchMock.mock.calls[0]![0]).toContain('/azkar/%D8%A3');
   });
@@ -67,6 +83,15 @@ describe('AzkarResource', () => {
 });
 
 describe('HadithResource', () => {
+  it('listBooks() returns the books array', async () => {
+    const { client } = mockClient(
+      ok([{ id: 'bukhari', name: 'Sahih al-Bukhari', available: 7563, apiName: 'hadith.gading.dev' }]),
+    );
+    const books = await client.hadith.listBooks();
+    expect(books).toHaveLength(1);
+    expect(books[0]?.id).toBe('bukhari');
+  });
+
   it('getBook() passes from/to as query params', async () => {
     const { client, fetchMock } = mockClient(ok({ book: 'bukhari', available: 1, hadiths: [] }));
     await client.hadith.getBook('bukhari', { from: 1, to: 50 });
@@ -89,6 +114,12 @@ describe('HadithResource', () => {
 });
 
 describe('TafsirResource', () => {
+  it('listEditions() returns the editions array', async () => {
+    const { client } = mockClient(ok([{ id: 'ar.muyassar', label: 'Al-Muyassar' }]));
+    const editions = await client.tafsir.listEditions();
+    expect(editions[0]?.id).toBe('ar.muyassar');
+  });
+
   it('forSurah() supports optional aya filter', async () => {
     const { client, fetchMock } = mockClient(ok([]));
     await client.tafsir.forSurah('ar.muyassar', 1, { aya: 2 });
@@ -113,12 +144,14 @@ describe('PrayerResource', () => {
     expect(url).toContain('longitude=39.82');
   });
 
-  it('getTimes() with city + country', async () => {
+  it('getTimes() with city + country + method', async () => {
     const { client, fetchMock } = mockClient(ok({ date: '2026-05-23', timings: {} }));
-    await client.prayer.getTimes({ city: 'Mecca', country: 'SA' });
+    await client.prayer.getTimes({ city: 'Mecca', country: 'SA', method: 4, date: '01-01-2026' });
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('city=Mecca');
     expect(url).toContain('country=SA');
+    expect(url).toContain('method=4');
+    expect(url).toContain('date=01-01-2026');
   });
 
   it('getTimes() rejects incomplete options', async () => {

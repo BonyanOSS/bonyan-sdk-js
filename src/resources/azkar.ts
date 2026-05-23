@@ -1,4 +1,10 @@
-import type { AzkarCategory, AzkarCategorySummary, AzkarItem, AzkarSearchHit, AzkarSearchResult } from '../types.js';
+import type {
+  AzkarCategory,
+  AzkarCategorySummary,
+  AzkarItem,
+  AzkarSearchHit,
+  AzkarSearchResult,
+} from '../types.js';
 import { ensureLimit, ensureNonEmptyString } from '../validation.js';
 import { BaseResource } from './base.js';
 

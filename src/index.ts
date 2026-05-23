@@ -1,7 +1,7 @@
-// Client
+// Client — use the named export (`import { BonyanClient } from '...'`).
+// A default export is intentionally avoided to keep CJS / ESM interop clean.
 export {
   BonyanClient,
-  BonyanClient as default,
   createBonyanClient,
   DEFAULT_BASE_URL,
   DEFAULT_RETRY,

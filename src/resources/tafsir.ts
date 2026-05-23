@@ -24,7 +24,11 @@ export class TafsirResource extends BaseResource {
   }
 
   /** `GET /tafsir/:edition/:surah` — tafsir for an entire surah (or a single aya). */
-  async forSurah(edition: string, surah: number, options: TafsirSurahOptions = {}): Promise<TafsirItem[] | TafsirItem> {
+  async forSurah(
+    edition: string,
+    surah: number,
+    options: TafsirSurahOptions = {},
+  ): Promise<TafsirItem[] | TafsirItem> {
     ensureNonEmptyString('edition', edition);
     ensureSurahNumber(surah);
     if (options.aya !== undefined) ensureAyaNumber(options.aya);

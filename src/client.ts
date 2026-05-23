@@ -75,5 +75,3 @@ export class BonyanClient {
 export function createBonyanClient(options?: BonyanClientOptions): BonyanClient {
   return new BonyanClient(options);
 }
-
-export default BonyanClient;
