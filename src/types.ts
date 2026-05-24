@@ -18,7 +18,7 @@ export interface BonyanClientOptions {
   retry?: number;
   /** Extra headers sent on every request. */
   headers?: Record<string, string>;
-  /** Custom fetch implementation (Node < 18, undici, etc). */
+  /** Custom fetch implementation (older runtimes, undici, etc). */
   fetch?: BonyanFetch;
   /** Optional User-Agent header. */
   userAgent?: string;

@@ -140,7 +140,7 @@ export class HttpClient {
 function resolveFetch(): BonyanFetch {
   if (typeof globalThis.fetch !== 'function') {
     throw new Error(
-      'Bonyan SDK requires global fetch (Node.js 18+ or a browser). ' +
+      'Bonyan SDK requires global fetch (Node.js 20+ or a browser). ' +
         'Pass a custom fetch via `new BonyanClient({ fetch })`.',
     );
   }

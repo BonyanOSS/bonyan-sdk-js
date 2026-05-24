@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [20, 22, 24]
 
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
         run: pnpm build
 
       - name: Upload coverage
-        if: matrix.node == 20
+        if: matrix.node == 22
         uses: actions/upload-artifact@v4
         with:
           name: coverage

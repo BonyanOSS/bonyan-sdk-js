@@ -70,7 +70,7 @@ If you need to touch more than one layer, that's usually a sign the change needs
 
 ## Local setup
 
-You need **Node.js ≥ 18** and **pnpm ≥ 10**. Install pnpm globally if needed:
+You need **Node.js ≥ 20** and **pnpm ≥ 10**. Install pnpm globally if needed:
 
 ```bash
 npm install -g pnpm

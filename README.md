@@ -44,7 +44,7 @@ pnpm add @bonyanoss/bonyan-api
 yarn add @bonyanoss/bonyan-api
 ```
 
-**Requirements:** Node.js ≥ 18, or any modern browser. No runtime dependencies.
+**Requirements:** Node.js ≥ 20, or any modern browser. No runtime dependencies.
 
 ---
 
@@ -277,7 +277,7 @@ const client = new BonyanClient({ retry: 0 });
 
 ## Custom fetch / environments
 
-The SDK uses `globalThis.fetch` by default. To use it on **Node < 18** or with a custom HTTP stack:
+The SDK uses `globalThis.fetch` by default. To use it on a runtime without a global fetch, or with a custom HTTP stack:
 
 ```ts
 import { BonyanClient } from '@bonyanoss/bonyan-api';
@@ -288,7 +288,7 @@ const client = new BonyanClient({ fetch: undiciFetch as typeof fetch });
 
 Works out of the box on:
 
-- ✅ Node.js ≥ 18
+- ✅ Node.js ≥ 20
 - ✅ Browsers (Chrome, Firefox, Safari, Edge)
 - ✅ Deno, Bun
 - ✅ Cloudflare Workers, Vercel Edge, Netlify Edge

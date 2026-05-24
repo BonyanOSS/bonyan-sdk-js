@@ -31,7 +31,7 @@ First stable release. The SDK now covers every Bonyan-API endpoint with full Typ
 - TSDoc on every public class and method.
 - Type guards: `isBonyanApiError`, `isBonyanRequestError`, `isValidationError`.
 - ESLint config, Prettier config and `.editorconfig`.
-- GitHub Actions: CI matrix (Node 18/20/22) and tag-driven release with npm provenance.
+- GitHub Actions: CI matrix (Node 20/22/24) and tag-driven release with npm provenance.
 - Issue templates, PR template, Dependabot.
 - Test suite covering the HTTP layer, validators, error classes and every resource.
 
