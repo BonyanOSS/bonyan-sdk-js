@@ -1,50 +1,41 @@
 name: Release
-
 on:
   push:
     tags:
       - 'v*'
-
 permissions:
   contents: read
   id-token: write
-
 jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
+      - uses: pnpm/action-setup@v6
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
-
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-
       - name: Setup npm 11
         run: npm install -g npm@^11.10.0
-
       - name: Verify package version is unpublished
         shell: bash
         run: |
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
             echo "::error::$PACKAGE_NAME@$PACKAGE_VERSION is already published on npm. Bump package.json version and create a new tag."
             exit 1
           fi
-
       - name: Publish
         run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
