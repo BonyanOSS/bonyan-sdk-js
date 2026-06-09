@@ -4,6 +4,8 @@
 [![CI](https://github.com/BonyanOSS/bonyan-sdk-js/actions/workflows/ci.yml/badge.svg)](https://github.com/BonyanOSS/bonyan-sdk-js/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
+[![npm downloads](https://img.shields.io/npm/d18m/%40bonyanoss%2Fbonyan-api
+)](https://www.npmjs.com/package/@bonyanoss/bonyan-api)
 
 Official JavaScript / TypeScript SDK for **[Bonyan-API](https://github.com/BonyanOSS/Bonyan-API)** — a unified API for Quran, Azkar, Hadith, Tafsir, Prayer times, Hijri calendar and Qibla direction, with automatic fallback between multiple upstream sources.
 
