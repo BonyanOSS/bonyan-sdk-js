@@ -8,7 +8,7 @@ import { QiblaResource } from './resources/qibla.js';
 import { RecitersResource } from './resources/reciters.js';
 import { SurahResource } from './resources/surah.js';
 import { TafsirResource } from './resources/tafsir.js';
-import type { BonyanClientOptions, HealthStatus } from './types.js';
+import type { BonyanClientOptions, BonyanRouteCatalogue, HealthStatus, ReadyStatus } from './types.js';
 
 /** Official Bonyan-API endpoint. */
 export const DEFAULT_BASE_URL = 'https://api.bonyanoss.org';
@@ -68,6 +68,21 @@ export class BonyanClient {
   /** `GET /health` — liveness probe. */
   health(): Promise<HealthStatus> {
     return this.http.raw<HealthStatus>('/health');
+  }
+
+  /** `GET /ready` - readiness probe with cache stats. */
+  ready(): Promise<ReadyStatus> {
+    return this.http.raw<ReadyStatus>('/ready');
+  }
+
+  /** `GET /` - route catalogue exposed by the API. */
+  routes(): Promise<BonyanRouteCatalogue> {
+    return this.http.raw<BonyanRouteCatalogue>('/');
+  }
+
+  /** `GET /metrics` - Prometheus metrics as text. */
+  metrics(): Promise<string> {
+    return this.http.text('/metrics', { headers: { Accept: 'text/plain' } });
   }
 }
 

@@ -73,8 +73,9 @@ const audio = await client.reciters.getSurah(1, 1);
 // Prayer times
 const times = await client.prayer.getTimes({ city: 'Mecca', country: 'SA' });
 
-// Health check
+// Health / metadata
 const health = await client.health();
+const readiness = await client.ready();
 ```
 
 ---
@@ -196,11 +197,14 @@ The `from`/`to` range is capped at **300 items** per request.
 | --- | --- |
 | `client.qibla.getDirection(latitude, longitude)` | `GET /qibla?latitude=…&longitude=…` |
 
-### `health`
+### `meta`
 
 | Method | Endpoint |
 | --- | --- |
-| `client.health()` | `GET /health` — returns `{ status, code, timestamp }` (no envelope) |
+| `client.health()` | `GET /health` - returns `{ status, code, timestamp }` (no envelope) |
+| `client.ready()` | `GET /ready` - returns readiness plus cache stats |
+| `client.routes()` | `GET /` - returns the API route catalogue |
+| `client.metrics()` | `GET /metrics` - returns Prometheus metrics as text |
 
 ---
 

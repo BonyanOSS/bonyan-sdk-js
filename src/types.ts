@@ -24,6 +24,25 @@ export interface BonyanClientOptions {
   userAgent?: string;
 }
 
+// ─── Meta endpoints ───────────────────────────────────────────────────────────
+
+export interface BonyanRouteInfo {
+  method: string | string[];
+  url: string;
+  schema?: unknown;
+}
+
+export interface BonyanRouteCatalogue {
+  name: string;
+  description: string;
+  routes: BonyanRouteInfo[];
+}
+
+export interface BonyanCacheStats {
+  entries: number;
+  inflight: number;
+}
+
 // ─── Envelope ────────────────────────────────────────────────────────────────
 
 export interface BonyanSuccessBody<T> {
@@ -59,7 +78,7 @@ export type TafsirApiSource = 'alquran.cloud' | 'quranenc.com';
 export type HadithApiSource = 'hadith.gading.dev' | 'cdn.jsdelivr.net/sutanlab/hadith-api';
 export type PrayerApiSource = 'aladhan.com' | 'pray.zone';
 export type HijriApiSource = 'aladhan.com';
-export type QiblaApiSource = 'aladhan.com';
+export type QiblaApiSource = 'aladhan.com' | 'local';
 
 // ─── Reciters ────────────────────────────────────────────────────────────────
 
@@ -246,4 +265,8 @@ export interface HealthStatus {
   status: string;
   code: number;
   timestamp: string;
+}
+
+export interface ReadyStatus extends HealthStatus {
+  cache: BonyanCacheStats;
 }
