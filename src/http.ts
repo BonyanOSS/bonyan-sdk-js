@@ -74,14 +74,23 @@ export class HttpClient {
     return this.request<T>(path, options);
   }
 
-  private async request<T>(path: string, options: BonyanRequestInit): Promise<T> {
+  /** Performs a GET and returns the response body as text. */
+  async text(path: string, options: BonyanRequestInit = {}): Promise<string> {
+    return this.request<string>(path, options, 'text');
+  }
+
+  private async request<T>(
+    path: string,
+    options: BonyanRequestInit,
+    responseType: 'json' | 'text' = 'json',
+  ): Promise<T> {
     const url = buildUrl(this.baseUrl, path, options.query);
     const attempts = this.retry + 1;
     let lastError: unknown;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
-        return await this.fetchOnce<T>(url, options);
+        return await this.fetchOnce<T>(url, options, responseType);
       } catch (error) {
         lastError = error;
         if (!shouldRetry(error, attempt, attempts, options.signal)) {
@@ -99,7 +108,11 @@ export class HttpClient {
       : new BonyanRequestError('Bonyan API request failed', lastError);
   }
 
-  private async fetchOnce<T>(url: string, options: BonyanRequestInit): Promise<T> {
+  private async fetchOnce<T>(
+    url: string,
+    options: BonyanRequestInit,
+    responseType: 'json' | 'text',
+  ): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
     const merged = options.signal
@@ -113,7 +126,7 @@ export class HttpClient {
         signal: merged.signal,
       });
 
-      const body = await safeParseResponseBody(response);
+      const body = responseType === 'text' ? await response.text() : await safeParseResponseBody(response);
 
       if (!response.ok) {
         throw BonyanApiError.fromResponse(
