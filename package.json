@@ -1,6 +1,6 @@
 {
   "name": "@bonyanoss/bonyan-api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Official JavaScript and TypeScript SDK for Bonyan-API — Quran, Azkar, Hadith, Tafsir, Prayer times, Hijri, Qibla.",
   "license": "MIT",
   "type": "module",
