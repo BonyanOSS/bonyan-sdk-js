@@ -1,4 +1,5 @@
 import { BonyanApiError, BonyanRequestError } from './errors.js';
+import { ensureIntegerInRange } from './validation.js';
 import type { BonyanFetch, BonyanSuccessBody } from './types.js';
 
 type QueryValue = boolean | number | string | null | undefined;
@@ -19,6 +20,9 @@ export interface BonyanRequestInit {
   /** Caller-supplied AbortSignal — composed with the timeout signal. */
   signal?: AbortSignal;
 }
+
+/** Transport overrides available as the last argument of every public method. */
+export type BonyanRequestOptions = Omit<BonyanRequestInit, 'query'>;
 
 export interface HttpClientOptions {
   baseUrl: string;
@@ -46,6 +50,8 @@ export class HttpClient {
   private readonly fetchFn: BonyanFetch;
 
   constructor(options: HttpClientOptions) {
+    ensureIntegerInRange('timeoutMs', options.timeoutMs, 1, 2_147_483_647);
+    ensureIntegerInRange('retry', options.retry, 0, Number.MAX_SAFE_INTEGER);
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.timeoutMs = options.timeoutMs;
     this.retry = Math.max(0, options.retry);
@@ -55,6 +61,22 @@ export class HttpClient {
       ...options.headers,
     };
     this.fetchFn = options.fetch ?? resolveFetch();
+  }
+
+  /** Preserves the top-level total in the API's flat search envelope. */
+  async search<T>(path: string, options: BonyanRequestInit = {}): Promise<{ total: number; results: T[] }> {
+    const body = await this.request<unknown>(path, options);
+    if (
+      !isEnvelope(body) ||
+      !Array.isArray(body.data) ||
+      !('total' in body) ||
+      typeof body.total !== 'number' ||
+      !Number.isSafeInteger(body.total) ||
+      body.total !== body.data.length
+    ) {
+      throw new BonyanRequestError('Unexpected search response from Bonyan API', body);
+    }
+    return { total: body.total, results: body.data as T[] };
   }
 
   /** Performs a GET and unwraps the `{ success: true, data: T }` envelope. */
@@ -85,10 +107,13 @@ export class HttpClient {
     responseType: 'json' | 'text' = 'json',
   ): Promise<T> {
     const url = buildUrl(this.baseUrl, path, options.query);
+    if (options.timeoutMs !== undefined)
+      ensureIntegerInRange('timeoutMs', options.timeoutMs, 1, 2_147_483_647);
     const attempts = this.retry + 1;
     let lastError: unknown;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (options.signal?.aborted) throw BonyanRequestError.from(options.signal.reason);
       try {
         return await this.fetchOnce<T>(url, options, responseType);
       } catch (error) {
@@ -97,7 +122,7 @@ export class HttpClient {
           throw error;
         }
         const retryAfter = error instanceof BonyanApiError ? error.retryAfterMs : undefined;
-        await sleep(retryAfter ?? backoff(attempt));
+        await sleep(retryAfter ?? backoff(attempt), options.signal);
       }
     }
 
@@ -122,7 +147,7 @@ export class HttpClient {
     try {
       const response = await this.fetchFn(url, {
         method: 'GET',
-        headers: { ...this.headers, ...headersToObject(options.headers) },
+        headers: mergeHeaders(this.headers, options.headers),
         signal: merged.signal,
       });
 
@@ -153,7 +178,7 @@ export class HttpClient {
 function resolveFetch(): BonyanFetch {
   if (typeof globalThis.fetch !== 'function') {
     throw new Error(
-      'Bonyan SDK requires global fetch (Node.js 20+ or a browser). ' +
+      'Bonyan SDK requires global fetch (Node.js 22.12+ or a browser). ' +
         'Pass a custom fetch via `new BonyanClient({ fetch })`.',
     );
   }
@@ -175,11 +200,10 @@ function buildUrl(baseUrl: string, path: string, query?: Record<string, QueryVal
   return url.toString();
 }
 
-function headersToObject(headers: HeadersInit | undefined): Record<string, string> {
-  if (!headers) return {};
-  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
-  if (Array.isArray(headers)) return Object.fromEntries(headers);
-  return { ...headers };
+function mergeHeaders(defaults: Record<string, string>, overrides?: HeadersInit): Headers {
+  const headers = new Headers(defaults);
+  new Headers(overrides).forEach((value, key) => headers.set(key, value));
+  return headers;
 }
 
 /**
@@ -230,7 +254,13 @@ function shouldRetry(
 }
 
 function isEnvelope(value: unknown): value is BonyanSuccessBody<unknown> {
-  return typeof value === 'object' && value !== null && 'data' in value;
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'success' in value &&
+    value.success === true &&
+    'data' in value
+  );
 }
 
 function backoff(attempt: number): number {
@@ -241,16 +271,34 @@ function parseRetryAfter(value: string | null): number | undefined {
   if (!value) return undefined;
 
   const seconds = Number(value);
-  if (Number.isFinite(seconds)) return seconds * 1000;
+  if (Number.isFinite(seconds)) return seconds >= 0 ? Math.min(seconds * 1000, 2_147_483_647) : undefined;
 
   const timestamp = Date.parse(value);
-  if (!Number.isNaN(timestamp)) return Math.max(0, timestamp - Date.now());
+  if (!Number.isNaN(timestamp)) return Math.min(2_147_483_647, Math.max(0, timestamp - Date.now()));
 
   return undefined;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(BonyanRequestError.from(signal.reason));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(BonyanRequestError.from(signal?.reason));
+    };
+    const timer = setTimeout(
+      () => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      },
+      Math.min(ms, 2_147_483_647),
+    );
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 interface MergedSignal {

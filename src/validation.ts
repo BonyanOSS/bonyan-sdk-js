@@ -1,4 +1,5 @@
 import { ValidationError } from './errors.js';
+import type { PrayerMethod } from './types.js';
 
 /** Total number of surahs in the Quran. */
 export const TOTAL_SURAH = 114;
@@ -13,7 +14,10 @@ export interface PrayerLocation {
   longitude?: number;
   city?: string;
   country?: string;
-  method?: number;
+  /** Supported calculation method; defaults to Umm al-Qura (4). */
+  method?: PrayerMethod;
+  /** IANA timezone used to format HH:mm timings; defaults to UTC. */
+  timezone?: string;
 }
 
 export function ensureSurahNumber(value: number): void {
@@ -54,6 +58,32 @@ export function ensureDate(date: string): void {
   if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
     throw new ValidationError('date must use DD-MM-YYYY format', 'date');
   }
+  const [day, month, year] = date.split('-').map(Number) as [number, number, number];
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    year < 1000 ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new ValidationError('date must be a valid Gregorian date', 'date');
+  }
+}
+
+export function ensureHijriDate(date: string): void {
+  if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+    throw new ValidationError('date must use DD-MM-YYYY format', 'date');
+  }
+  const [day, month, year] = date.split('-').map(Number) as [number, number, number];
+  if (day < 1 || day > 30 || month < 1 || month > 12 || year < 1 || year > 2400) {
+    throw new ValidationError('date must be a valid Hijri date with year between 1 and 2400', 'date');
+  }
+}
+
+export function ensureTafsirEdition(edition: string): void {
+  if (edition !== 'muyassar' && edition !== 'saadi') {
+    throw new ValidationError('edition must be muyassar or saadi', 'edition');
+  }
 }
 
 export function ensureLatitude(latitude: number): void {
@@ -74,18 +104,30 @@ export function ensureHadithRange(options?: { from?: number; to?: number }): voi
   if (options.from !== undefined) ensurePositiveInteger('from', options.from);
   if (options.to !== undefined) ensurePositiveInteger('to', options.to);
 
-  if (options.from !== undefined && options.to !== undefined) {
-    if (options.to < options.from) {
-      throw new ValidationError('to must be greater than or equal to from', 'to');
-    }
-    if (options.to - options.from + 1 > 300) {
-      throw new ValidationError('hadith range cannot exceed 300 items', 'to');
-    }
+  const from = options.from ?? 1;
+  const to = options.to ?? from + 29;
+  ensurePositiveInteger('to', to);
+  if (to < from) {
+    throw new ValidationError('to must be greater than or equal to from', 'to');
+  }
+  if (to - from + 1 > 300) {
+    throw new ValidationError('hadith range cannot exceed 300 items', 'to');
   }
 }
 
 export function ensurePrayerLocation(options: PrayerLocation): void {
   if (options.date !== undefined) ensureDate(options.date);
+  if (options.method !== undefined && ![1, 2, 3, 4, 5, 9, 10, 11].includes(options.method)) {
+    throw new ValidationError('method must be 1, 2, 3, 4, 5, 9, 10 or 11', 'method');
+  }
+  if (options.timezone !== undefined) {
+    ensureNonEmptyString('timezone', options.timezone);
+    try {
+      new Intl.DateTimeFormat('en', { timeZone: options.timezone.trim() });
+    } catch {
+      throw new ValidationError('timezone must be a valid IANA timezone', 'timezone');
+    }
+  }
 
   const hasCoords = options.latitude !== undefined || options.longitude !== undefined;
   const hasCity = options.city !== undefined || options.country !== undefined;

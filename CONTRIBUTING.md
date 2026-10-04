@@ -70,7 +70,7 @@ If you need to touch more than one layer, that's usually a sign the change needs
 
 ## Local setup
 
-You need **Node.js ≥ 20** and **pnpm ≥ 10**. Install pnpm globally if needed:
+Use **Node.js 22.13 or a supported Node 24 release** for development and the **pnpm version in package.json**. ESLint 10 requires Node 22.13; the SDK itself supports Node 22.12. Install pnpm globally if needed:
 
 ```bash
 npm install -g pnpm

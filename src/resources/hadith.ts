@@ -1,3 +1,4 @@
+import type { BonyanRequestOptions } from '../http.js';
 import type { HadithBook, HadithBookContent, HadithItem, HadithRandomResult } from '../types.js';
 import { ensureHadithRange, ensureNonEmptyString, ensurePositiveInteger } from '../validation.js';
 import { BaseResource } from './base.js';
@@ -15,42 +16,51 @@ export interface HadithRandomOptions {
 }
 
 /**
- * Endpoints under `/hadith` — collections of authenticated narrations.
+ * Endpoints under `/hadith` — hadith collections.
  *
  * @example
  * ```ts
  * const books = await client.hadith.listBooks();
- * const arbain = await client.hadith.getBook('arbain', { from: 1, to: 10 });
+ * const bukhari = await client.hadith.getBook('bukhari', { from: 1, to: 10 });
  * const one = await client.hadith.getByNumber('bukhari', 1);
  * const random = await client.hadith.random({ book: 'muslim' });
  * ```
  */
 export class HadithResource extends BaseResource {
   /** `GET /hadith` — list available hadith books. */
-  async listBooks(): Promise<HadithBook[]> {
-    return this.http.get<HadithBook[]>('/hadith');
+  async listBooks(request: BonyanRequestOptions = {}): Promise<HadithBook[]> {
+    return this.http.get<HadithBook[]>('/hadith', request);
   }
 
   /** `GET /hadith/:book` — fetch a slice of hadiths from a book (max 300 at a time). */
-  async getBook(bookId: string, options: HadithBookOptions = {}): Promise<HadithBookContent> {
+  async getBook(
+    bookId: string,
+    options: HadithBookOptions = {},
+    request: BonyanRequestOptions = {},
+  ): Promise<HadithBookContent> {
     ensureNonEmptyString('bookId', bookId);
     ensureHadithRange(options);
     return this.http.get<HadithBookContent>(`/hadith/${encodeURIComponent(bookId)}`, {
+      ...request,
       query: { from: options.from, to: options.to },
     });
   }
 
   /** `GET /hadith/:book/:number` — fetch a single hadith by its number in the book. */
-  async getByNumber(bookId: string, number: number): Promise<HadithItem> {
+  async getByNumber(bookId: string, number: number, request: BonyanRequestOptions = {}): Promise<HadithItem> {
     ensureNonEmptyString('bookId', bookId);
     ensurePositiveInteger('number', number);
-    return this.http.get<HadithItem>(`/hadith/${encodeURIComponent(bookId)}/${number}`);
+    return this.http.get<HadithItem>(`/hadith/${encodeURIComponent(bookId)}/${number}`, request);
   }
 
   /** `GET /hadith/random` — pick a random hadith, optionally constrained to one book. */
-  async random(options: HadithRandomOptions = {}): Promise<HadithRandomResult> {
+  async random(
+    options: HadithRandomOptions = {},
+    request: BonyanRequestOptions = {},
+  ): Promise<HadithRandomResult> {
     if (options.book !== undefined) ensureNonEmptyString('book', options.book);
     return this.http.get<HadithRandomResult>('/hadith/random', {
+      ...request,
       query: { book: options.book },
     });
   }

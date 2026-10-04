@@ -1,3 +1,4 @@
+import type { BonyanRequestOptions } from '../http.js';
 import type { QiblaInfo } from '../types.js';
 import { ensureLatitude, ensureLongitude } from '../validation.js';
 import { BaseResource } from './base.js';
@@ -13,9 +14,13 @@ import { BaseResource } from './base.js';
  */
 export class QiblaResource extends BaseResource {
   /** `GET /qibla?latitude=…&longitude=…` — qibla direction from a coordinate. */
-  async getDirection(latitude: number, longitude: number): Promise<QiblaInfo> {
+  async getDirection(
+    latitude: number,
+    longitude: number,
+    request: BonyanRequestOptions = {},
+  ): Promise<QiblaInfo> {
     ensureLatitude(latitude);
     ensureLongitude(longitude);
-    return this.http.get<QiblaInfo>('/qibla', { query: { latitude, longitude } });
+    return this.http.get<QiblaInfo>('/qibla', { ...request, query: { latitude, longitude } });
   }
 }

@@ -1,339 +1,148 @@
 # @bonyanoss/bonyan-api
 
-[![npm](https://img.shields.io/npm/v/@bonyanoss/bonyan-api.svg)](https://www.npmjs.com/package/@bonyanoss/bonyan-api)
-[![CI](https://github.com/BonyanOSS/bonyan-sdk-js/actions/workflows/ci.yml/badge.svg)](https://github.com/BonyanOSS/bonyan-sdk-js/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg)](https://www.typescriptlang.org/)
-[![npm downloads](https://img.shields.io/npm/d18m/%40bonyanoss%2Fbonyan-api
-)](https://www.npmjs.com/package/@bonyanoss/bonyan-api)
-
-Official JavaScript / TypeScript SDK for **[Bonyan-API](https://github.com/BonyanOSS/Bonyan-API)** — a unified API for Quran, Azkar, Hadith, Tafsir, Prayer times, Hijri calendar and Qibla direction, with automatic fallback between multiple upstream sources.
-
-```ts
-import { BonyanClient } from '@bonyanoss/bonyan-api';
-
-const client = new BonyanClient();
-
-const reciters = await client.reciters.list();
-const fatiha = await client.surah.getById(1);
-const morning = await client.azkar.getByCategory('أذكار الصباح');
-```
-
----
-
-## Table of contents
-
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Client options](#client-options)
-- [Resources](#resources)
-  - [`reciters`](#reciters) · [`surah`](#surah) · [`ayat`](#ayat) · [`azkar`](#azkar) · [`tafsir`](#tafsir) · [`hadith`](#hadith) · [`prayer`](#prayer) · [`hijri`](#hijri) · [`qibla`](#qibla)
-- [Error handling](#error-handling)
-- [Validation](#validation)
-- [Retry and rate limiting](#retry-and-rate-limiting)
-- [Custom fetch / environments](#custom-fetch--environments)
-- [TypeScript](#typescript)
-- [Contributing](#contributing)
-- [License](#license)
-
----
+JavaScript and TypeScript SDK for [Bonyan API](https://github.com/BonyanOSS/Bonyan-API). Version 2.0.0 matches API commit `c851b1a`: package `2.1.0`, OpenAPI contract `3.0.0`.
 
 ## Install
 
 ```bash
-npm install @bonyanoss/bonyan-api
-pnpm add @bonyanoss/bonyan-api
-yarn add @bonyanoss/bonyan-api
+npm install @bonyanoss/bonyan-api@2.0.0
 ```
 
-**Requirements:** Node.js ≥ 20, or any modern browser. No runtime dependencies.
+Node.js 22.12 or later is supported. Browsers can use a bundler and standard fetch, URL and AbortController APIs. There are no runtime dependencies. The package includes ESM, CommonJS and TypeScript declarations.
 
----
-
-## Quick start
+## Usage
 
 ```ts
 import { BonyanClient } from '@bonyanoss/bonyan-api';
 
-const client = new BonyanClient();
+const client = new BonyanClient({ timeoutMs: 45000, retry: 1 });
+const surahs = await client.surah.list();
+const { total, results } = await client.ayat.search('الرحمن', { limit: 10 });
+console.log(surahs[0]?.name, total, results[0]?.apiName);
 
-// Surahs
-const surahs = await client.surah.list();          // 114 chapters
-const fatiha = await client.surah.getById(1);
-
-// Ayat
-const verse = await client.ayat.getBySurah(2, 255); // Ayat al-Kursi
-const search = await client.ayat.search('الرحمن', { limit: 20 });
-console.log(search.total, search.results.length);
-
-// Reciters
-const reciter = await client.reciters.getById(1);
-const audio = await client.reciters.getSurah(1, 1);
-
-// Prayer times
-const times = await client.prayer.getTimes({ city: 'Mecca', country: 'SA' });
-
-// Health / metadata
-const health = await client.health();
-const readiness = await client.ready();
-```
-
----
-
-## Client options
-
-```ts
-import { BonyanClient } from '@bonyanoss/bonyan-api';
-
-const client = new BonyanClient({
-  baseUrl: 'https://api.bonyanoss.org', // default
-  timeoutMs: 10_000,                                  // default 10 s
-  retry: 3,                                           // default 3
-  headers: { 'X-App-Id': 'my-app' },                  // optional
-  userAgent: 'my-app/1.0',                            // optional
-  fetch: customFetch,                                 // optional custom fetch
+const times = await client.prayer.getTimes({
+  latitude: 21.4225,
+  longitude: 39.8262,
+  method: 4,
+  timezone: 'Asia/Riyadh',
 });
+console.log(times.timings.Fajr, times.timezone);
 ```
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `baseUrl` | `string` | `https://api.bonyanoss.org` | Base URL of the API |
-| `timeoutMs` | `number` | `10_000` | Per-request timeout in milliseconds |
-| `retry` | `number` | `3` | Retry attempts on 5xx / 429 / network errors |
-| `headers` | `Record<string, string>` | — | Extra headers applied to every request |
-| `userAgent` | `string` | — | Adds a `User-Agent` header |
-| `fetch` | `typeof fetch` | `globalThis.fetch` | Override the fetch implementation |
+`createBonyanClient(options)` is equivalent to `new BonyanClient(options)`. Reuse a client for a given configuration.
 
----
+## Configuration
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `baseUrl` | `https://api.bonyanoss.org` | Origin and optional gateway prefix; trailing slashes are removed. |
+| `timeoutMs` | `10000` | Positive integer milliseconds per attempt, up to 2147483647. |
+| `retry` | `3` | Nonnegative integer retries after the initial attempt. |
+| `headers` | `Accept: application/json` | Headers applied to every request. |
+| `fetch` | `globalThis.fetch` | Standard fetch implementation for tests or custom transport. |
+| `userAgent` | Unset | Optional User-Agent; browser behavior depends on the platform. |
+
+Every method accepts optional `BonyanRequestOptions` as its last argument: `signal`, `timeoutMs` and `headers`. Pass domain options before transport options.
+
+```ts
+const controller = new AbortController();
+const operation = client.ayat.search('الله', { limit: 10 }, {
+  signal: controller.signal,
+  timeoutMs: 45000,
+});
+controller.abort();
+await operation.catch(console.error);
+
+await client.surah.getById(1, { headers: { 'X-Application': 'my-app' } });
+await client.health({ timeoutMs: 2000 });
+```
+
+Cancellation stops active requests and retry delays. An already aborted signal prevents fetch. Timeouts apply per attempt; use a signal for a total deadline. Header names merge case-insensitively.
 
 ## Resources
 
-Every resource is reachable from the client instance. All methods validate their arguments before hitting the network — invalid input throws [`ValidationError`](#error-handling).
+Methods return Promises. Content methods unwrap `data`; lists return arrays directly. Search preserves the top-level `total` as `{ total, results }`. No method writes to the server. The signatures below omit the optional transport argument.
 
-### `reciters`
-
-| Method | Endpoint |
+| Method | Result |
 | --- | --- |
-| `client.reciters.list()` | `GET /reciters` |
-| `client.reciters.getById(id)` | `GET /reciters/:id` |
-| `client.reciters.search(name)` | `GET /reciters/search?name=…` |
-| `client.reciters.getSurah(reciterId, surah)` | `GET /reciters/:id/surah/:surah` |
+| `surah.list()` | `Surah[]` |
+| `surah.getById(id)` | `Surah` |
+| `surah.search(name)` | `Surah[]` |
+| `ayat.list()` | `SurahWithAyat[]`, the full Quran |
+| `ayat.getById(id)` | `AyaWithSurah` |
+| `ayat.getBySurah(surah, aya)` | `AyaWithSurah` |
+| `ayat.search(text, { limit }?)` | `AyatSearchResult` |
+| `reciters.list()` | `Reciter[]` |
+| `reciters.getById(id)` | `Reciter` |
+| `reciters.search(name)` | `Reciter[]` |
+| `reciters.getSurah(id, surah, { moshaf }?)` | `ReciterAudio` |
+| `tafsir.listEditions()` | `TafsirEdition[]` |
+| `tafsir.forSurah(edition, surah, { aya }?)` | `TafsirItem[]`, even with a filter |
+| `tafsir.forAya(edition, surah, aya)` | `TafsirItem` |
+| `azkar.listCategories()` | `AzkarCategorySummary[]` |
+| `azkar.getByCategory(category)` | `AzkarCategory` |
+| `azkar.search(text, { limit }?)` | `AzkarSearchResult` |
+| `azkar.random()` | `AzkarSearchHit` |
+| `hadith.listBooks()` | `HadithBook[]` |
+| `hadith.getBook(book, { from, to }?)` | `HadithBookContent` |
+| `hadith.getByNumber(book, number)` | `HadithItem` |
+| `hadith.random({ book }?)` | `HadithRandomResult` |
+| `prayer.getTimes(options)` | `PrayerTimings` |
+| `hijri.today()` | `HijriDate` |
+| `hijri.fromGregorian(date?)` | `HijriDate` |
+| `hijri.toGregorian(date)` | `HijriDate` |
+| `qibla.getDirection(latitude, longitude)` | `QiblaInfo` |
+| `routes()` | `BonyanRouteCatalogue`, raw JSON |
+| `health()` | `HealthStatus`, raw JSON |
+| `ready()` | `ReadyStatus`, raw JSON |
+| `metrics()` | Prometheus text |
+
+Search uses normalized Arabic substrings. No match returns HTTP 404 through `BonyanApiError`. `total` counts returned matches after the limit; there is no pagination or corpus-wide count.
+
+Reciter `moshaf` recordings expose `surahList`, `rewayaId` and `type`. `moshaf` selection uses a recording ID from that catalogue. Without a selector, the API prefers a covering Hafs murattal recording. Audio results include `moshafId`, `rewayaId` and `apiName` after HEAD verification. Subsequent playback can still fail.
+
+Tafsir supports `muyassar` and `saadi`. Returned `edition` stays the public ID across sources. Prayer methods are `1, 2, 3, 4, 5, 9, 10, 11`, default `4`. Seven timings use `HH:mm` in `timezone`, default `UTC`. The local fallback needs coordinates and preserves date, method and timezone; city-only requests need a provider. Prayer `hijri` is optional.
+
+Hijri results include `calendar: 'islamic-umalqura'`, with Aladhan or local Intl provenance. Hadith numbering can have gaps. `available` counts stored narrations, not the maximum lookup number; ranges can return fewer items than requested.
+
+## Validation and errors
+
+Inputs reject with `ValidationError` before transport: surah `1..114`, global verse `1..6236`, verse within surah `1..286`, bounded coordinates, supported tafsir/prayer settings, real Gregorian dates and bounded Hijri dates. The server handles nonexistent verses within valid bounds. Search limits are `1..500` for ayat and `1..200` for azkar. Inclusive hadith ranges allow 300 requested numbers, including defaulted bounds. Defaults are `from=1`, `to=from+29`.
 
 ```ts
-const all = await client.reciters.list();
-const reciter = await client.reciters.getById(1);
-const matches = await client.reciters.search('العفاسي');
-const audio = await client.reciters.getSurah(1, 1);
-```
-
-### `surah`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.surah.list()` | `GET /surah` |
-| `client.surah.getById(id)` | `GET /surah/:id` |
-| `client.surah.search(name)` | `GET /surah/search?name=…` |
-
-### `ayat`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.ayat.list()` | `GET /ayat` *(heavy response — every ayah of every surah)* |
-| `client.ayat.getById(id)` | `GET /ayat/:id` — global id (1..6236) |
-| `client.ayat.getBySurah(surah, aya)` | `GET /ayat/:surah/aya/:aya` — surah (1..114) + aya (1..286) |
-| `client.ayat.search(text, { limit })` | `GET /ayat/search?text=…&limit=…` (max 500) |
-
-```ts
-const { total, results } = await client.ayat.search('الرحمن', { limit: 50 });
-```
-
-### `azkar`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.azkar.listCategories()` | `GET /azkar` |
-| `client.azkar.getByCategory(category)` | `GET /azkar/:category` |
-| `client.azkar.search(text, { limit })` | `GET /azkar/search?text=…&limit=…` |
-| `client.azkar.random()` | `GET /azkar/random` |
-
-### `tafsir`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.tafsir.listEditions()` | `GET /tafsir` |
-| `client.tafsir.forSurah(edition, surah, { aya })` | `GET /tafsir/:edition/:surah` |
-| `client.tafsir.forAya(edition, surah, aya)` | `GET /tafsir/:edition/:surah/:aya` |
-
-### `hadith`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.hadith.listBooks()` | `GET /hadith` |
-| `client.hadith.getBook(bookId, { from, to })` | `GET /hadith/:book` |
-| `client.hadith.getByNumber(bookId, number)` | `GET /hadith/:book/:number` |
-| `client.hadith.random({ book })` | `GET /hadith/random` |
-
-The `from`/`to` range is capped at **300 items** per request.
-
-### `prayer`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.prayer.getTimes(options)` | `GET /prayer/times` |
-
-`options` requires **either** `latitude` + `longitude`, **or** `city` + `country`. Optional: `date` (`DD-MM-YYYY`), `method` (calculation method).
-
-### `hijri`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.hijri.today()` | `GET /hijri/today` |
-| `client.hijri.fromGregorian(date?)` | `GET /hijri/from-gregorian?date=DD-MM-YYYY` |
-| `client.hijri.toGregorian(date)` | `GET /hijri/to-gregorian?date=DD-MM-YYYY` |
-
-### `qibla`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.qibla.getDirection(latitude, longitude)` | `GET /qibla?latitude=…&longitude=…` |
-
-### `meta`
-
-| Method | Endpoint |
-| --- | --- |
-| `client.health()` | `GET /health` - returns `{ status, code, timestamp }` (no envelope) |
-| `client.ready()` | `GET /ready` - returns readiness plus cache stats |
-| `client.routes()` | `GET /` - returns the API route catalogue |
-| `client.metrics()` | `GET /metrics` - returns Prometheus metrics as text |
-
----
-
-## Error handling
-
-The SDK throws **three** distinct error classes — handle each one by `instanceof` or the exported type guards.
-
-```ts
-import {
-  BonyanClient,
-  BonyanApiError,
-  BonyanRequestError,
-  ValidationError,
-} from '@bonyanoss/bonyan-api';
-
-const client = new BonyanClient();
+import { BonyanApiError, BonyanRequestError, ValidationError } from '@bonyanoss/bonyan-api';
 
 try {
-  await client.reciters.getById(999_999);
+  await client.ayat.search('الرحمن');
 } catch (error) {
-  if (error instanceof ValidationError) {
-    console.error('Invalid input on field:', error.field, error.message);
-  } else if (error instanceof BonyanApiError) {
-    // The API responded with a non-2xx
-    console.error(error.status, error.code, error.requestId, error.message);
-  } else if (error instanceof BonyanRequestError) {
-    // Network failure, timeout, DNS, …
-    console.error('Network error:', error.message);
-  }
+  if (error instanceof ValidationError) console.error(error.field, error.message);
+  else if (error instanceof BonyanApiError) console.error(error.status, error.code, error.requestId);
+  else if (error instanceof BonyanRequestError) console.error(error.message, error.cause);
+  else throw error;
 }
 ```
 
-| Class | When | Notable fields |
-| --- | --- | --- |
-| `ValidationError` | Argument failed client-side validation (no network request was sent) | `field` |
-| `BonyanApiError` | API returned a non-2xx response | `status`, `code`, `requestId`, `retryAfterMs`, `body` |
-| `BonyanRequestError` | Network error, DNS, timeout, abort | `cause` |
+`BonyanApiError` also exposes `statusText`, `retryAfterMs` and `body`. Type guards are `isBonyanApiError`, `isBonyanRequestError` and `isValidationError`. Proxy responses may omit API metadata. Malformed success envelopes and search counts reject with `BonyanRequestError`. Other response fields are described by TypeScript and are not exhaustively validated at runtime.
 
-Type guards: `isBonyanApiError`, `isBonyanRequestError`, `isValidationError`.
+HTTP 429, HTTP 5xx and transport failures are retried. Default `retry: 3` allows four attempts. Valid `Retry-After` overrides exponential backoff (`100 * 2^attempt` milliseconds plus `0..99` milliseconds of jitter). Caller cancellation is never retried. `retry: 0` disables retries.
 
----
+## Migration from 1.0.2
 
-## Validation
+Version 2.0.0 aligns response types with the current API. Search returns valid `{ total, results }`; remove old adapters. Use `muyassar` instead of `ar.muyassar`; unsupported editions reject before transport. `forSurah()` is always an array. Reciter `moshaf`, surah `makkia`, prayer metadata and the Hijri calendar field are required. Source unions reflect current adapters and local fallbacks. Legacy `style`, `Imsak` and `Midnight` fields are removed.
 
-Every argument is checked **before** a request is sent:
+## Development
 
-- `surah` must be an integer in `1..114`
-- Global aya `id` (used by `ayat.getById`) must be in `1..6236`
-- Per-surah `aya` number (in `ayat.getBySurah`, `tafsir.forAya`) must be in `1..286`
-- `latitude` ∈ `[-90, 90]`, `longitude` ∈ `[-180, 180]`
-- Dates use the `DD-MM-YYYY` format
-- Search `limit` is bounded per endpoint (200 for `azkar`, 500 for `ayat`)
-- Hadith `from`/`to` range is capped at 300
-
-When validation fails, `ValidationError` is thrown synchronously — no HTTP request is made.
-
----
-
-## Retry and rate limiting
-
-By default the SDK retries up to **3 times** on:
-
-- `5xx` server errors
-- `429 Too Many Requests`
-- Network errors (DNS failure, socket reset, timeout)
-
-`Retry-After` headers (in seconds or HTTP-date) are honored. Between attempts the SDK sleeps with **exponential backoff + jitter** (`100ms * 2^attempt + random(0-100)`).
-
-Disable retries entirely:
-
-```ts
-const client = new BonyanClient({ retry: 0 });
-```
-
----
-
-## Custom fetch / environments
-
-The SDK uses `globalThis.fetch` by default. To use it on a runtime without a global fetch, or with a custom HTTP stack:
-
-```ts
-import { BonyanClient } from '@bonyanoss/bonyan-api';
-import { fetch as undiciFetch } from 'undici';
-
-const client = new BonyanClient({ fetch: undiciFetch as typeof fetch });
-```
-
-Works out of the box on:
-
-- ✅ Node.js ≥ 20
-- ✅ Browsers (Chrome, Firefox, Safari, Edge)
-- ✅ Deno, Bun
-- ✅ Cloudflare Workers, Vercel Edge, Netlify Edge
-
----
-
-## TypeScript
-
-The SDK ships with **strict** type definitions — `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`. Every public API has TSDoc comments visible in your editor.
-
-```ts
-import type {
-  Reciter,
-  Surah,
-  Aya,
-  AzkarItem,
-  HadithItem,
-  PrayerTimings,
-  HijriDate,
-  QiblaInfo,
-} from '@bonyanoss/bonyan-api';
-```
-
----
-
-## Contributing
-
-We :heart: pull requests! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the dev setup, code style, and how to add a new resource.
-
-Quick start:
+Use the pnpm version in `package.json`.
 
 ```bash
-pnpm install
-pnpm test
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm test:coverage
 pnpm build
+pnpm pack --pack-destination ./dist
 ```
 
----
+TypeScript remains on the compatible 6.0 line: the current ESLint parser requires `<6.1.0`, and declaration generation uses the JavaScript compiler API. Node declarations track the oldest supported Node 22 runtime.
 
-## License
-
-[MIT](LICENSE) © [BonyanOSS](https://github.com/BonyanOSS)
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [the documentation](https://docs.bonyanoss.org). [MIT license](LICENSE).

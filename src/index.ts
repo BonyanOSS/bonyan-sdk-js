@@ -26,9 +26,10 @@ export { HadithResource, type HadithBookOptions, type HadithRandomOptions } from
 export { HijriResource } from './resources/hijri.js';
 export { PrayerResource, type PrayerTimesOptions } from './resources/prayer.js';
 export { QiblaResource } from './resources/qibla.js';
-export { RecitersResource } from './resources/reciters.js';
+export { RecitersResource, type ReciterAudioOptions } from './resources/reciters.js';
 export { SurahResource } from './resources/surah.js';
 export { TafsirResource, type TafsirSurahOptions } from './resources/tafsir.js';
 
 // Public types
 export type * from './types.js';
+export type { BonyanRequestOptions } from './http.js';

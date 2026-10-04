@@ -78,10 +78,9 @@ describe('HttpClient', () => {
 
     await client.reciters.list();
     const [, init] = fetchMock.mock.calls[0]!;
-    expect((init as RequestInit).headers).toMatchObject({
-      Accept: 'application/json',
-      'X-Custom': 'yes',
-    });
+    const headers = new Headers(init?.headers);
+    expect(headers.get('Accept')).toBe('application/json');
+    expect(headers.get('X-Custom')).toBe('yes');
   });
 
   it('strips trailing slashes from baseUrl', async () => {
@@ -112,13 +111,9 @@ describe('HttpClient', () => {
     });
 
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 5, fetch: fetchMock });
-    // Pass the user's signal through a resource by reaching into http directly.
-    await expect(
-      (client as unknown as { http: { get: (p: string, o: object) => Promise<unknown> } }).http.get(
-        '/reciters',
-        { signal: controller.signal },
-      ),
-    ).rejects.toBeInstanceOf(BonyanRequestError);
+    await expect(client.reciters.list({ signal: controller.signal })).rejects.toBeInstanceOf(
+      BonyanRequestError,
+    );
     expect(attempts).toBe(1);
   });
 
@@ -170,7 +165,7 @@ describe('HttpClient', () => {
     expect(fetchMock.mock.calls[0]![0]).toBe(`${TEST_BASE_URL}/ready`);
     expect(fetchMock.mock.calls[1]![0]).toBe(`${TEST_BASE_URL}/`);
     expect(fetchMock.mock.calls[2]![0]).toBe(`${TEST_BASE_URL}/metrics`);
-    expect(fetchMock.mock.calls[2]![1]?.headers).toMatchObject({ Accept: 'text/plain' });
+    expect(new Headers(fetchMock.mock.calls[2]![1]?.headers).get('Accept')).toBe('text/plain');
   });
 
   it('handles non-JSON 5xx bodies gracefully', async () => {

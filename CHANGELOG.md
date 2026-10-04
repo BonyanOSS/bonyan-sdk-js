@@ -5,7 +5,29 @@ All notable changes to `@bonyanoss/bonyan-api` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — Unreleased
+## [2.0.0] - 2026-10-04
+
+Matches API commit c851b1a (package 2.1.0, OpenAPI contract 3.0.0).
+
+### Changed
+
+- Align response types and provider unions with normalized reciter, Quran, azkar, tafsir, prayer and Hijri contracts. Required metadata and removed legacy fields make this a major SDK release.
+- Use public tafsir IDs muyassar and saadi; forSurah always returns an array.
+- Require Node.js 22.12 or later. Update compatible tooling, Vitest 5 and pnpm 11. Keep TypeScript 6 for parser and compiler API compatibility.
+
+### Added
+
+- Optional moshaf selection, prayer timezone and source provenance.
+- Optional signal, timeoutMs and headers as the last argument of every public method.
+- Regression tests for flat search envelopes, recording selection, calendar validation and cancellation during retries.
+
+### Fixed
+
+- Preserve top-level search total and data rather than reading them from the unwrapped array.
+- Validate Gregorian dates, Hijri date bounds, prayer methods/timezones and defaulted inclusive hadith ranges.
+- Reject invalid timeout/retry settings and failed success envelopes; merge headers case-insensitively and stop retry delays on cancellation.
+
+## [1.0.0] - Unreleased
 
 First stable release. The SDK now covers every Bonyan-API endpoint with full TypeScript types, validation, retry/backoff and an open-source-ready project layout.
 
@@ -45,9 +67,9 @@ First stable release. The SDK now covers every Bonyan-API endpoint with full Typ
 ### Removed
 
 - `ApiError` and `NetworkError` base classes (use `BonyanApiError` / `BonyanRequestError`).
-- Implicit `cross-fetch` import — Node 18+ ships `fetch` natively.
+- Implicit `cross-fetch` import - Node 18+ ships `fetch` natively.
 
-## [0.1.0] — 2026-05-17
+## [0.1.0] - 2026-05-17
 
 - Initial release with the `reciters` resource and the SDK foundation.
 

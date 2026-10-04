@@ -1,5 +1,6 @@
+import type { BonyanRequestOptions } from '../http.js';
 import type { TafsirEdition, TafsirItem } from '../types.js';
-import { ensureAyaNumber, ensureNonEmptyString, ensureSurahNumber } from '../validation.js';
+import { ensureAyaNumber, ensureTafsirEdition, ensureSurahNumber } from '../validation.js';
 import { BaseResource } from './base.js';
 
 export interface TafsirSurahOptions {
@@ -13,14 +14,14 @@ export interface TafsirSurahOptions {
  * @example
  * ```ts
  * const editions = await client.tafsir.listEditions();
- * const surah = await client.tafsir.forSurah('ar.muyassar', 1);
- * const aya = await client.tafsir.forAya('ar.muyassar', 1, 1);
+ * const surah = await client.tafsir.forSurah('muyassar', 1);
+ * const aya = await client.tafsir.forAya('muyassar', 1, 1);
  * ```
  */
 export class TafsirResource extends BaseResource {
   /** `GET /tafsir` — list available tafsir editions. */
-  async listEditions(): Promise<TafsirEdition[]> {
-    return this.http.get<TafsirEdition[]>('/tafsir');
+  async listEditions(request: BonyanRequestOptions = {}): Promise<TafsirEdition[]> {
+    return this.http.get<TafsirEdition[]>('/tafsir', request);
   }
 
   /** `GET /tafsir/:edition/:surah` — tafsir for an entire surah (or a single aya). */
@@ -28,20 +29,27 @@ export class TafsirResource extends BaseResource {
     edition: string,
     surah: number,
     options: TafsirSurahOptions = {},
-  ): Promise<TafsirItem[] | TafsirItem> {
-    ensureNonEmptyString('edition', edition);
+    request: BonyanRequestOptions = {},
+  ): Promise<TafsirItem[]> {
+    ensureTafsirEdition(edition);
     ensureSurahNumber(surah);
     if (options.aya !== undefined) ensureAyaNumber(options.aya);
-    return this.http.get<TafsirItem[] | TafsirItem>(`/tafsir/${encodeURIComponent(edition)}/${surah}`, {
+    return this.http.get<TafsirItem[]>(`/tafsir/${encodeURIComponent(edition)}/${surah}`, {
+      ...request,
       query: { aya: options.aya },
     });
   }
 
   /** `GET /tafsir/:edition/:surah/:aya` — tafsir for a specific aya. */
-  async forAya(edition: string, surah: number, aya: number): Promise<TafsirItem> {
-    ensureNonEmptyString('edition', edition);
+  async forAya(
+    edition: string,
+    surah: number,
+    aya: number,
+    request: BonyanRequestOptions = {},
+  ): Promise<TafsirItem> {
+    ensureTafsirEdition(edition);
     ensureSurahNumber(surah);
     ensureAyaNumber(aya);
-    return this.http.get<TafsirItem>(`/tafsir/${encodeURIComponent(edition)}/${surah}/${aya}`);
+    return this.http.get<TafsirItem>(`/tafsir/${encodeURIComponent(edition)}/${surah}/${aya}`, request);
   }
 }
