@@ -5,7 +5,7 @@ const bonyan = new BonyanClient();
 const editions = await bonyan.tafsir.listEditions();
 console.log('Editions:', editions.slice(0, 5));
 
-const edition = editions[0]?.id ?? 'ar';
+const edition = editions[0]?.id ?? 'muyassar';
 const surahTafsir = await bonyan.tafsir.forSurah(edition, 1);
 console.log('Surah tafsir:', Array.isArray(surahTafsir) ? surahTafsir.slice(0, 3) : surahTafsir);
 

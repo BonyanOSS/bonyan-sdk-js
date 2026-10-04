@@ -1,3 +1,4 @@
+import type { BonyanRequestOptions } from './http.js';
 import { HttpClient } from './http.js';
 import { AyatResource } from './resources/ayat.js';
 import { AzkarResource } from './resources/azkar.js';
@@ -66,23 +67,28 @@ export class BonyanClient {
   }
 
   /** `GET /health` — liveness probe. */
-  health(): Promise<HealthStatus> {
-    return this.http.raw<HealthStatus>('/health');
+  health(request: BonyanRequestOptions = {}): Promise<HealthStatus> {
+    return this.http.raw<HealthStatus>('/health', request);
   }
 
   /** `GET /ready` - readiness probe with cache stats. */
-  ready(): Promise<ReadyStatus> {
-    return this.http.raw<ReadyStatus>('/ready');
+  ready(request: BonyanRequestOptions = {}): Promise<ReadyStatus> {
+    return this.http.raw<ReadyStatus>('/ready', request);
   }
 
   /** `GET /` - route catalogue exposed by the API. */
-  routes(): Promise<BonyanRouteCatalogue> {
-    return this.http.raw<BonyanRouteCatalogue>('/');
+  routes(request: BonyanRequestOptions = {}): Promise<BonyanRouteCatalogue> {
+    return this.http.raw<BonyanRouteCatalogue>('/', request);
   }
 
   /** `GET /metrics` - Prometheus metrics as text. */
-  metrics(): Promise<string> {
-    return this.http.text('/metrics', { headers: { Accept: 'text/plain' } });
+  metrics(request: BonyanRequestOptions = {}): Promise<string> {
+    const headers = new Headers(request.headers);
+    if (!headers.has('Accept')) headers.set('Accept', 'text/plain');
+    return this.http.text('/metrics', {
+      ...request,
+      headers,
+    });
   }
 }
 

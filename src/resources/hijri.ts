@@ -1,5 +1,6 @@
+import type { BonyanRequestOptions } from '../http.js';
 import type { HijriDate } from '../types.js';
-import { ensureDate } from '../validation.js';
+import { ensureDate, ensureHijriDate } from '../validation.js';
 import { BaseResource } from './base.js';
 
 /**
@@ -16,19 +17,19 @@ import { BaseResource } from './base.js';
  */
 export class HijriResource extends BaseResource {
   /** `GET /hijri/today` — today's date in both calendars. */
-  async today(): Promise<HijriDate> {
-    return this.http.get<HijriDate>('/hijri/today');
+  async today(request: BonyanRequestOptions = {}): Promise<HijriDate> {
+    return this.http.get<HijriDate>('/hijri/today', request);
   }
 
   /** `GET /hijri/from-gregorian?date=DD-MM-YYYY` — convert a Gregorian date to Hijri. */
-  async fromGregorian(date?: string): Promise<HijriDate> {
+  async fromGregorian(date?: string, request: BonyanRequestOptions = {}): Promise<HijriDate> {
     if (date !== undefined) ensureDate(date);
-    return this.http.get<HijriDate>('/hijri/from-gregorian', { query: { date } });
+    return this.http.get<HijriDate>('/hijri/from-gregorian', { ...request, query: { date } });
   }
 
   /** `GET /hijri/to-gregorian?date=DD-MM-YYYY` — convert a Hijri date to Gregorian. */
-  async toGregorian(date: string): Promise<HijriDate> {
-    ensureDate(date);
-    return this.http.get<HijriDate>('/hijri/to-gregorian', { query: { date } });
+  async toGregorian(date: string, request: BonyanRequestOptions = {}): Promise<HijriDate> {
+    ensureHijriDate(date);
+    return this.http.get<HijriDate>('/hijri/to-gregorian', { ...request, query: { date } });
   }
 }

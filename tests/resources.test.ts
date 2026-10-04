@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ValidationError } from '../src/index.js';
-import { TEST_BASE_URL, mockClient, ok } from './helpers.js';
+import { TEST_BASE_URL, mockClient, ok, jsonResponse } from './helpers.js';
 
 describe('SurahResource', () => {
   it('list() returns the surah array', async () => {
@@ -44,7 +44,7 @@ describe('AyatResource', () => {
   });
 
   it('search() reshapes the {total, data} envelope', async () => {
-    const { client } = mockClient(ok({ total: 2, data: [{ aya: 1 }, { aya: 2 }] }));
+    const { client } = mockClient(jsonResponse({ success: true, total: 2, data: [{ aya: 1 }, { aya: 2 }] }));
     const result = await client.ayat.search('الرحمن');
     expect(result.total).toBe(2);
     expect(result.results).toHaveLength(2);
@@ -59,23 +59,33 @@ describe('AyatResource', () => {
 describe('AzkarResource', () => {
   it('listCategories() returns the categories array', async () => {
     const { client } = mockClient(
-      ok({ categories: [{ name: 'morning', count: 10, apiName: 'hisnmuslim.com' }] }),
+      ok({
+        categories: [{ name: 'morning', count: 10, apiName: 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json' }],
+      }),
     );
     await expect(client.azkar.listCategories()).resolves.toEqual([
-      { name: 'morning', count: 10, apiName: 'hisnmuslim.com' },
+      { name: 'morning', count: 10, apiName: 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json' },
     ]);
   });
 
   it('getByCategory() URL-encodes the category', async () => {
     const { client, fetchMock } = mockClient(
-      ok({ category: 'morning', items: [], apiName: 'hisnmuslim.com' }),
+      ok({ category: 'morning', items: [], apiName: 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json' }),
     );
     await client.azkar.getByCategory('أذكار الصباح');
     expect(fetchMock.mock.calls[0]![0]).toContain('/azkar/%D8%A3');
   });
 
   it('search() reshapes the envelope', async () => {
-    const { client } = mockClient(ok({ total: 1, data: [{ category: 'm', item: { id: 1, text: '' } }] }));
+    const { client } = mockClient(
+      jsonResponse({
+        success: true,
+        total: 1,
+        data: [
+          { category: 'm', item: { id: 1, text: '' }, apiName: 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json' },
+        ],
+      }),
+    );
     const result = await client.azkar.search('استغفر');
     expect(result.total).toBe(1);
     expect(result.results[0]?.category).toBe('m');
@@ -85,7 +95,14 @@ describe('AzkarResource', () => {
 describe('HadithResource', () => {
   it('listBooks() returns the books array', async () => {
     const { client } = mockClient(
-      ok([{ id: 'bukhari', name: 'Sahih al-Bukhari', available: 7563, apiName: 'hadith.gading.dev' }]),
+      ok([
+        {
+          id: 'bukhari',
+          name: 'Sahih al-Bukhari',
+          available: 7563,
+          apiName: 'cdn.jsdelivr.net/gadingnst/hadith-api',
+        },
+      ]),
     );
     const books = await client.hadith.listBooks();
     expect(books).toHaveLength(1);
@@ -115,23 +132,23 @@ describe('HadithResource', () => {
 
 describe('TafsirResource', () => {
   it('listEditions() returns the editions array', async () => {
-    const { client } = mockClient(ok([{ id: 'ar.muyassar', label: 'Al-Muyassar' }]));
+    const { client } = mockClient(ok([{ id: 'muyassar', label: 'Al-Muyassar' }]));
     const editions = await client.tafsir.listEditions();
-    expect(editions[0]?.id).toBe('ar.muyassar');
+    expect(editions[0]?.id).toBe('muyassar');
   });
 
   it('forSurah() supports optional aya filter', async () => {
     const { client, fetchMock } = mockClient(ok([]));
-    await client.tafsir.forSurah('ar.muyassar', 1, { aya: 2 });
+    await client.tafsir.forSurah('muyassar', 1, { aya: 2 });
     const [url] = fetchMock.mock.calls[0]!;
-    expect(url).toContain('/tafsir/ar.muyassar/1');
+    expect(url).toContain('/tafsir/muyassar/1');
     expect(url).toContain('aya=2');
   });
 
   it('forAya() validates all three inputs', async () => {
     const { client } = mockClient(ok({}));
     await expect(client.tafsir.forAya('', 1, 1)).rejects.toBeInstanceOf(ValidationError);
-    await expect(client.tafsir.forAya('ar.muyassar', 115, 1)).rejects.toBeInstanceOf(ValidationError);
+    await expect(client.tafsir.forAya('muyassar', 115, 1)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 

@@ -15,7 +15,7 @@ body:
     attributes:
       label: Runtime
       description: Node.js version, browser, Bun, Deno…
-      placeholder: Node 20.11.0
+      placeholder: Node 22.12.0
     validations:
       required: true
 

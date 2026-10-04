@@ -1,3 +1,4 @@
+import type { BonyanRequestOptions } from '../http.js';
 import type { PrayerTimings } from '../types.js';
 import { type PrayerLocation, ensurePrayerLocation } from '../validation.js';
 import { BaseResource } from './base.js';
@@ -17,9 +18,10 @@ export type PrayerTimesOptions = PrayerLocation;
  */
 export class PrayerResource extends BaseResource {
   /** `GET /prayer/times` — prayer timings for a given location and date. */
-  async getTimes(options: PrayerTimesOptions): Promise<PrayerTimings> {
+  async getTimes(options: PrayerTimesOptions, request: BonyanRequestOptions = {}): Promise<PrayerTimings> {
     ensurePrayerLocation(options);
     return this.http.get<PrayerTimings>('/prayer/times', {
+      ...request,
       query: {
         date: options.date,
         latitude: options.latitude,
@@ -27,6 +29,7 @@ export class PrayerResource extends BaseResource {
         city: options.city,
         country: options.country,
         method: options.method,
+        timezone: options.timezone,
       },
     });
   }
