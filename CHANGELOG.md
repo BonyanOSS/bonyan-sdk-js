@@ -5,6 +5,19 @@ All notable changes to `@bonyanoss/bonyan-api` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-10-26
+
+### Fixed
+
+- Propagate response body transport failures to retries and preserve timeout/cancellation errors after response headers arrive.
+- Update build dependencies and lockfile resolutions to remove known npm advisories, while keeping TypeScript 6.0 and Node 22 declarations compatible.
+
+### Changed
+
+- Build with tsup 9 and pnpm 11.28.8. Development requires Node 22.18+ or 24.11+ within those release lines; consumer support stays at Node 22.12+.
+- Pin GitHub Actions to reviewed commits, audit dependencies in CI and releases, check release tag/version agreement, and constrain incompatible Dependabot upgrades.
+- Correct the security support table for the 2.x release line.
+
 ## [2.0.0] - 2026-10-04
 
 Matches API commit c851b1a (package 2.1.0, OpenAPI contract 3.0.0).

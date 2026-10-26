@@ -19,6 +19,8 @@ const sharedGlobals = {
   clearTimeout: 'readonly',
   setInterval: 'readonly',
   clearInterval: 'readonly',
+  ReadableStream: 'readonly',
+  queueMicrotask: 'readonly',
   globalThis: 'readonly',
   console: 'readonly',
   process: 'readonly',

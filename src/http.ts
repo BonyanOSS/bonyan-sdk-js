@@ -207,25 +207,16 @@ function mergeHeaders(defaults: Record<string, string>, overrides?: HeadersInit)
 }
 
 /**
- * Parses a `Response` body without throwing — returns a deterministic value
- * (object / string / null) that downstream code can inspect.
+ * Preserves parse fallbacks while allowing body transport errors to reach retries.
  */
 async function safeParseResponseBody(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') ?? '';
-
+  const text = await response.text();
+  if (text === '') return null;
   try {
-    if (contentType.includes('application/json')) {
-      return await response.json();
-    }
-    const text = await response.text();
-    if (text === '') return null;
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { message: text };
-    }
+    return JSON.parse(text);
   } catch {
-    return null;
+    return contentType.includes('application/json') ? null : { message: text };
   }
 }
 

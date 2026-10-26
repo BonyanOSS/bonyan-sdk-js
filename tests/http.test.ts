@@ -182,6 +182,69 @@ describe('HttpClient', () => {
     });
   });
 
+  it('reports a timeout while reading a successful response body', async () => {
+    const fetchMock = vi.fn<BonyanFetch>(
+      async (_url, init) =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              init?.signal?.addEventListener('abort', () => controller.error(init.signal?.reason), {
+                once: true,
+              });
+            },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
+    );
+    const client = new BonyanClient({ timeoutMs: 10, retry: 0, fetch: fetchMock });
+
+    await expect(client.health()).rejects.toMatchObject({
+      name: 'BonyanRequestError',
+      message: 'Bonyan API request timed out',
+    });
+  });
+
+  it('does not retry caller cancellation while reading the response body', async () => {
+    const caller = new AbortController();
+    const fetchMock = vi.fn<BonyanFetch>(
+      async (_url, init) =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              init?.signal?.addEventListener('abort', () => controller.error(init.signal?.reason), {
+                once: true,
+              });
+              queueMicrotask(() => caller.abort());
+            },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        ),
+    );
+    const client = new BonyanClient({ retry: 3, fetch: fetchMock });
+
+    await expect(client.ready({ signal: caller.signal })).rejects.toBeInstanceOf(BonyanRequestError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries a response body transport failure', async () => {
+    const fetchMock = vi.fn<BonyanFetch>();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(new TypeError('Connection reset while reading body'));
+          },
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ status: 'ok' }));
+    const client = new BonyanClient({ retry: 1, fetch: fetchMock });
+
+    await expect(client.health()).resolves.toEqual({ status: 'ok' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('does not throw on empty 200 body', async () => {
     const fetchMock = vi.fn<BonyanFetch>(async () => new Response('', { status: 200 }));
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });

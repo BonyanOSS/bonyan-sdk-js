@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    ignore:
+      # The ESLint parser supports TypeScript <6.1; Node types match consumers.
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       dev-dependencies:
         dependency-type: development
