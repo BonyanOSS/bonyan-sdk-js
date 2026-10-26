@@ -132,7 +132,7 @@ Version 2.0.0 aligns response types with the current API. Search returns valid `
 
 ## Development
 
-Use the pnpm version in `package.json`.
+Use Node.js 22.18+ or 24.11+ within those release lines for development, and the pnpm version in `package.json`. The published package still supports Node.js 22.12+.
 
 ```bash
 pnpm install --frozen-lockfile

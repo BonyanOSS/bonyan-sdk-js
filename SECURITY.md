@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-The latest minor release of `@bonyanoss/bonyan-api` is supported with security updates. Older versions are best-effort only — please upgrade when a fix is published.
+The latest 2.x release of `@bonyanoss/bonyan-api` is supported with security updates. Upgrade to the current release when a fix is published.
 
 | Version | Supported |
 | --- | --- |
-| 1.x | ✅ |
-| < 1.0 | ❌ |
+| 2.x | Yes |
+| < 2.0 | No |
 
 ## Reporting a vulnerability
 

@@ -70,7 +70,7 @@ If you need to touch more than one layer, that's usually a sign the change needs
 
 ## Local setup
 
-Use **Node.js 22.13 or a supported Node 24 release** for development and the **pnpm version in package.json**. ESLint 10 requires Node 22.13; the SDK itself supports Node 22.12. Install pnpm globally if needed:
+Use **Node.js 22.18 or Node.js 24.11 or later in the 24.x line** for development and the **pnpm version in package.json**. tsup 9 sets this build requirement; the published SDK still supports Node.js 22.12. Install pnpm globally if needed:
 
 ```bash
 npm install -g pnpm
