@@ -1,11 +1,11 @@
 # @bonyanoss/bonyan-api
 
-JavaScript and TypeScript SDK for [Bonyan API](https://github.com/BonyanOSS/Bonyan-API). Version 2.0.0 matches API commit `c851b1a`: package `2.1.0`, OpenAPI contract `3.0.0`.
+JavaScript and TypeScript SDK for [Bonyan API](https://github.com/BonyanOSS/Bonyan-API). Version 2.0.1 supports API `2.1.1` and OpenAPI contract `3.0.0`.
 
 ## Install
 
 ```bash
-npm install @bonyanoss/bonyan-api@2.0.0
+npm install @bonyanoss/bonyan-api@2.0.1
 ```
 
 Node.js 22.12 or later is supported. Browsers can use a bundler and standard fetch, URL and AbortController APIs. There are no runtime dependencies. The package includes ESM, CommonJS and TypeScript declarations.
