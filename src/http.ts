@@ -33,10 +33,6 @@ export interface HttpClientOptions {
   userAgent?: string;
 }
 
-const DEFAULT_HEADERS: Record<string, string> = {
-  Accept: 'application/json',
-};
-
 /**
  * Thin fetch wrapper used by every resource. Centralizes retry/backoff,
  * timeouts, header management and envelope unwrapping so individual resources
@@ -54,11 +50,13 @@ export class HttpClient {
     ensureIntegerInRange('retry', options.retry, 0, Number.MAX_SAFE_INTEGER);
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.timeoutMs = options.timeoutMs;
-    this.retry = Math.max(0, options.retry);
+    this.retry = options.retry;
     this.headers = {
-      ...DEFAULT_HEADERS,
-      ...(options.userAgent ? { 'User-Agent': options.userAgent } : {}),
-      ...options.headers,
+      accept: 'application/json',
+      ...(options.userAgent ? { 'user-agent': options.userAgent } : {}),
+      ...Object.fromEntries(
+        Object.entries(options.headers ?? {}).map(([name, value]) => [name.toLowerCase(), value]),
+      ),
     };
     this.fetchFn = options.fetch ?? resolveFetch();
   }
@@ -233,15 +231,7 @@ function shouldRetry(
   if (error instanceof BonyanApiError) {
     return error.status >= 500 || error.status === 429;
   }
-  if (error instanceof BonyanRequestError) {
-    // If the request error wraps a user AbortError, don't retry.
-    const cause = error.cause;
-    if (cause instanceof DOMException && cause.name === 'AbortError' && userSignal?.aborted) {
-      return false;
-    }
-    return true;
-  }
-  return false;
+  return error instanceof BonyanRequestError;
 }
 
 function isEnvelope(value: unknown): value is BonyanSuccessBody<unknown> {
