@@ -84,7 +84,9 @@ export class BonyanClient {
   /** `GET /metrics` - Prometheus metrics as text. */
   metrics(request: BonyanRequestOptions = {}): Promise<string> {
     const headers = new Headers(request.headers);
+
     if (!headers.has('Accept')) headers.set('Accept', 'text/plain');
+
     return this.http.text('/metrics', {
       ...request,
       headers,

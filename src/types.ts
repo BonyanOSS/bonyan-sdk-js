@@ -75,18 +75,28 @@ export interface BonyanErrorBody {
 // ─── API sources ─────────────────────────────────────────────────────────────
 
 export type SurahApiSource = 'mp3quran.net' | 'alquran.cloud' | 'quran.com' | 'local';
+
 export type ReciterApiSource = 'mp3quran.net' | 'local';
+
 export type AyatApiSource = 'alquran.cloud' | 'cdn.jsdelivr.net/fawazahmed0/quran-api' | 'quran.com';
+
 export type AzkarApiSource =
   'raw.githubusercontent.com/rn0x/hisn_almuslim_json' | 'cdn.jsdelivr.net/rn0x/hisn_almuslim_json';
+
 export type TafsirApiSource =
   'alquran.cloud' | 'quranenc.com' | 'quran.com' | 'cdn.jsdelivr.net/spa5k/tafsir_api';
+
 export type HadithApiSource =
   'cdn.jsdelivr.net/gadingnst/hadith-api' | 'raw.githubusercontent.com/gadingnst/hadith-api' | 'local';
+
 export type PrayerApiSource = 'aladhan.com' | 'local';
+
 export type HijriApiSource = 'aladhan.com' | 'local';
+
 export type QiblaApiSource = 'aladhan.com' | 'local';
+
 export type PrayerMethod = 1 | 2 | 3 | 4 | 5 | 9 | 10 | 11;
+
 export type TafsirEditionId = 'muyassar' | 'saadi';
 
 // ─── Reciters ────────────────────────────────────────────────────────────────

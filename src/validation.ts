@@ -50,6 +50,7 @@ export function ensureNonEmptyString(field: string, value: string): void {
 
 export function ensureLimit(limit: number | undefined, max: number): void {
   if (limit === undefined) return;
+
   ensureIntegerInRange('limit', limit, 1, max);
 }
 
@@ -58,8 +59,10 @@ export function ensureDate(date: string): void {
   if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
     throw new ValidationError('date must use DD-MM-YYYY format', 'date');
   }
+
   const [day, month, year] = date.split('-').map(Number) as [number, number, number];
   const parsed = new Date(Date.UTC(year, month - 1, day));
+
   if (
     year < 1000 ||
     parsed.getUTCFullYear() !== year ||
@@ -74,7 +77,9 @@ export function ensureHijriDate(date: string): void {
   if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
     throw new ValidationError('date must use DD-MM-YYYY format', 'date');
   }
+
   const [day, month, year] = date.split('-').map(Number) as [number, number, number];
+
   if (day < 1 || day > 30 || month < 1 || month > 12 || year < 1 || year > 2400) {
     throw new ValidationError('date must be a valid Hijri date with year between 1 and 2400', 'date');
   }
@@ -102,14 +107,17 @@ export function ensureHadithRange(options?: { from?: number; to?: number }): voi
   if (!options) return;
 
   if (options.from !== undefined) ensurePositiveInteger('from', options.from);
+
   if (options.to !== undefined) ensurePositiveInteger('to', options.to);
 
   const from = options.from ?? 1;
   const to = options.to ?? from + 29;
   ensurePositiveInteger('to', to);
+
   if (to < from) {
     throw new ValidationError('to must be greater than or equal to from', 'to');
   }
+
   if (to - from + 1 > 300) {
     throw new ValidationError('hadith range cannot exceed 300 items', 'to');
   }
@@ -117,11 +125,14 @@ export function ensureHadithRange(options?: { from?: number; to?: number }): voi
 
 export function ensurePrayerLocation(options: PrayerLocation): void {
   if (options.date !== undefined) ensureDate(options.date);
+
   if (options.method !== undefined && ![1, 2, 3, 4, 5, 9, 10, 11].includes(options.method)) {
     throw new ValidationError('method must be 1, 2, 3, 4, 5, 9, 10 or 11', 'method');
   }
+
   if (options.timezone !== undefined) {
     ensureNonEmptyString('timezone', options.timezone);
+
     try {
       new Intl.DateTimeFormat('en', { timeZone: options.timezone.trim() });
     } catch {
@@ -139,6 +150,7 @@ export function ensurePrayerLocation(options: PrayerLocation): void {
         options.latitude === undefined ? 'latitude' : 'longitude',
       );
     }
+
     ensureLatitude(options.latitude);
     ensureLongitude(options.longitude);
     return;
@@ -151,6 +163,7 @@ export function ensurePrayerLocation(options: PrayerLocation): void {
         options.city === undefined ? 'city' : 'country',
       );
     }
+
     ensureNonEmptyString('city', options.city);
     ensureNonEmptyString('country', options.country);
     return;
