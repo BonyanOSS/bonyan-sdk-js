@@ -64,6 +64,7 @@ export class HttpClient {
   /** Preserves the top-level total in the API's flat search envelope. */
   async search<T>(path: string, options: BonyanRequestInit = {}): Promise<{ total: number; results: T[] }> {
     const body = await this.request<unknown>(path, options);
+
     if (
       !isEnvelope(body) ||
       !Array.isArray(body.data) ||
@@ -74,15 +75,18 @@ export class HttpClient {
     ) {
       throw new BonyanRequestError('Unexpected search response from Bonyan API', body);
     }
+
     return { total: body.total, results: body.data as T[] };
   }
 
   /** Performs a GET and unwraps the `{ success: true, data: T }` envelope. */
   async get<T>(path: string, options: BonyanRequestInit = {}): Promise<T> {
     const body = await this.request<unknown>(path, options);
+
     if (isEnvelope(body)) {
       return body.data as T;
     }
+
     throw new BonyanRequestError(
       'Unexpected response from Bonyan API — missing `data` field in envelope',
       body,
@@ -105,20 +109,25 @@ export class HttpClient {
     responseType: 'json' | 'text' = 'json',
   ): Promise<T> {
     const url = buildUrl(this.baseUrl, path, options.query);
+
     if (options.timeoutMs !== undefined)
       ensureIntegerInRange('timeoutMs', options.timeoutMs, 1, 2_147_483_647);
+
     const attempts = this.retry + 1;
     let lastError: unknown;
 
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       if (options.signal?.aborted) throw BonyanRequestError.from(options.signal.reason);
+
       try {
         return await this.fetchOnce<T>(url, options, responseType);
       } catch (error) {
         lastError = error;
+
         if (!shouldRetry(error, attempt, attempts, options.signal)) {
           throw error;
         }
+
         const retryAfter = error instanceof BonyanApiError ? error.retryAfterMs : undefined;
         await sleep(retryAfter ?? backoff(attempt), options.signal);
       }
@@ -165,6 +174,7 @@ export class HttpClient {
       if (error instanceof BonyanApiError) {
         throw error;
       }
+
       throw BonyanRequestError.from(error);
     } finally {
       clearTimeout(timeout);
@@ -180,6 +190,7 @@ function resolveFetch(): BonyanFetch {
         'Pass a custom fetch via `new BonyanClient({ fetch })`.',
     );
   }
+
   return globalThis.fetch.bind(globalThis);
 }
 
@@ -210,7 +221,9 @@ function mergeHeaders(defaults: Record<string, string>, overrides?: HeadersInit)
 async function safeParseResponseBody(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') ?? '';
   const text = await response.text();
+
   if (text === '') return null;
+
   try {
     return JSON.parse(text);
   } catch {
@@ -225,12 +238,14 @@ function shouldRetry(
   userSignal: AbortSignal | undefined,
 ): boolean {
   if (attempt >= attempts - 1) return false;
+
   // Respect user-initiated aborts: never retry past an explicit cancel.
   if (userSignal?.aborted) return false;
 
   if (error instanceof BonyanApiError) {
     return error.status >= 500 || error.status === 429;
   }
+
   return error instanceof BonyanRequestError;
 }
 
@@ -252,9 +267,11 @@ function parseRetryAfter(value: string | null): number | undefined {
   if (!value) return undefined;
 
   const seconds = Number(value);
+
   if (Number.isFinite(seconds)) return seconds >= 0 ? Math.min(seconds * 1000, 2_147_483_647) : undefined;
 
   const timestamp = Date.parse(value);
+
   if (!Number.isNaN(timestamp)) return Math.min(2_147_483_647, Math.max(0, timestamp - Date.now()));
 
   return undefined;
@@ -266,6 +283,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
       reject(BonyanRequestError.from(signal.reason));
       return;
     }
+
     const onAbort = () => {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
@@ -299,10 +317,12 @@ function mergeSignals(a: AbortSignal, b: AbortSignal): MergedSignal {
   }
 
   const controller = new AbortController();
+
   if (a.aborted) {
     controller.abort(a.reason);
     return { signal: controller.signal };
   }
+
   if (b.aborted) {
     controller.abort(b.reason);
     return { signal: controller.signal };

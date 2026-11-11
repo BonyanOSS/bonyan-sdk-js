@@ -112,6 +112,7 @@ describe('HadithResource', () => {
   it('getBook() passes from/to as query params', async () => {
     const { client, fetchMock } = mockClient(ok({ book: 'bukhari', available: 1, hadiths: [] }));
     await client.hadith.getBook('bukhari', { from: 1, to: 50 });
+
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('from=1');
     expect(url).toContain('to=50');
@@ -140,6 +141,7 @@ describe('TafsirResource', () => {
   it('forSurah() supports optional aya filter', async () => {
     const { client, fetchMock } = mockClient(ok([]));
     await client.tafsir.forSurah('muyassar', 1, { aya: 2 });
+
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('/tafsir/muyassar/1');
     expect(url).toContain('aya=2');
@@ -156,6 +158,7 @@ describe('PrayerResource', () => {
   it('getTimes() with coordinates', async () => {
     const { client, fetchMock } = mockClient(ok({ date: '2026-05-23', timings: {} }));
     await client.prayer.getTimes({ latitude: 21.42, longitude: 39.82 });
+
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('latitude=21.42');
     expect(url).toContain('longitude=39.82');
@@ -164,6 +167,7 @@ describe('PrayerResource', () => {
   it('getTimes() with city + country + method', async () => {
     const { client, fetchMock } = mockClient(ok({ date: '2026-05-23', timings: {} }));
     await client.prayer.getTimes({ city: 'Mecca', country: 'SA', method: 4, date: '01-01-2026' });
+
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('city=Mecca');
     expect(url).toContain('country=SA');
@@ -205,6 +209,7 @@ describe('QiblaResource', () => {
     );
 
     await client.qibla.getDirection(40.7128, -74.006);
+
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toContain('latitude=40.7128');
     expect(url).toContain('longitude=-74.006');

@@ -59,6 +59,7 @@ export class HadithResource extends BaseResource {
     request: BonyanRequestOptions = {},
   ): Promise<HadithRandomResult> {
     if (options.book !== undefined) ensureNonEmptyString('book', options.book);
+
     return this.http.get<HadithRandomResult>('/hadith/random', {
       ...request,
       query: { book: options.book },

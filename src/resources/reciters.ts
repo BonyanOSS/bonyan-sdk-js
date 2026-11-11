@@ -51,7 +51,9 @@ export class RecitersResource extends BaseResource {
   ): Promise<ReciterAudio> {
     ensurePositiveInteger('reciterId', reciterId);
     ensureSurahNumber(surah);
+
     if (options.moshaf !== undefined) ensurePositiveInteger('moshaf', options.moshaf);
+
     return this.http.get<ReciterAudio>(`/reciters/${reciterId}/surah/${surah}`, {
       ...request,
       query: { moshaf: options.moshaf },

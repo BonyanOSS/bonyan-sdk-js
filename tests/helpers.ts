@@ -38,6 +38,7 @@ export function mockClient(
 ): MockedClient {
   const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
     if (typeof response === 'function') return response(url, init);
+
     return response.clone();
   }) as unknown as ReturnType<typeof vi.fn>;
 

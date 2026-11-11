@@ -74,10 +74,13 @@ describe('normalized API contracts', () => {
     const { client, fetchMock } = mockClient(ok({ calendar: 'islamic-umalqura', apiName: 'local' }));
     await client.hijri.fromGregorian('29-02-2024');
     await client.hijri.toGregorian('30-02-1448');
+
     for (const date of ['31-02-2026', '29-02-2025', '01-01-0999'])
       await expect(client.hijri.fromGregorian(date)).rejects.toBeInstanceOf(ValidationError);
+
     for (const date of ['31-02-1448', '01-13-1448', '01-01-2401'])
       await expect(client.hijri.toGregorian(date)).rejects.toBeInstanceOf(ValidationError);
+
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -124,6 +127,7 @@ describe('transport options', () => {
   it('merges per-call headers without case-sensitive duplicates', async () => {
     const { client, fetchMock } = mockClient(ok({ surah: [] }));
     await client.surah.list({ headers: { accept: 'application/custom+json' }, timeoutMs: 50 });
+
     const headers = new Headers(fetchMock.mock.calls[0]![1].headers);
     expect(headers.get('Accept')).toBe('application/custom+json');
   });
@@ -162,6 +166,7 @@ describe('transport options', () => {
         }),
     );
     await expect(client.health({ timeoutMs: 5 })).rejects.toBeInstanceOf(BonyanRequestError);
+
     const failing = mockClient(
       jsonResponse(
         { success: false, error: { code: 'NOT_FOUND', requestId: 'request', message: 'missing' } },

@@ -24,6 +24,7 @@ export class HijriResource extends BaseResource {
   /** `GET /hijri/from-gregorian?date=DD-MM-YYYY` — convert a Gregorian date to Hijri. */
   async fromGregorian(date?: string, request: BonyanRequestOptions = {}): Promise<HijriDate> {
     if (date !== undefined) ensureDate(date);
+
     return this.http.get<HijriDate>('/hijri/from-gregorian', { ...request, query: { date } });
   }
 

@@ -181,6 +181,7 @@ Add a row to the resource table in `README.md`.
 - **Endpoint comments.** Every public resource method has a one-line JSDoc starting with the HTTP verb and path (`/** \`GET /surah/:id\` — fetch a surah. */`).
 - **No surprise mutations.** Resources are stateless. Don't cache things on `this`.
 - **Formatting is automated.** Run `pnpm format` before pushing. CI rejects unformatted code.
+- Keep related declarations together. Leave a blank line between a control-flow block and neighboring statements.
 
 ---
 

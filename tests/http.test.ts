@@ -77,6 +77,7 @@ describe('HttpClient', () => {
     });
 
     await client.reciters.list();
+
     const [, init] = fetchMock.mock.calls[0]!;
     const headers = new Headers(init?.headers);
     expect(headers.get('Accept')).toBe('application/json');
@@ -92,6 +93,7 @@ describe('HttpClient', () => {
     });
 
     await client.reciters.list();
+
     const headers = new Headers(fetchMock.mock.calls[0]![1]?.headers);
 
     expect(headers.get('Accept')).toBe('application/custom+json');
@@ -111,6 +113,7 @@ describe('HttpClient', () => {
     const client = new BonyanClient({ baseUrl: TEST_BASE_URL, retry: 0, fetch: fetchMock });
 
     await client.hadith.getBook('bukhari', { from: 1, to: 1 });
+
     const [calledUrl] = fetchMock.mock.calls[0]!;
     expect(calledUrl).toContain('from=1');
     expect(calledUrl).toContain('to=1');
@@ -147,6 +150,7 @@ describe('HttpClient', () => {
   it('client meta methods return raw readiness, routes, and metrics bodies', async () => {
     const fetchMock = vi.fn<BonyanFetch>(async (url) => {
       const href = String(url);
+
       if (href.endsWith('/ready')) {
         return jsonResponse({
           status: 'ready',
@@ -155,11 +159,13 @@ describe('HttpClient', () => {
           cache: { entries: 1, inflight: 0 },
         });
       }
+
       if (href.endsWith('/metrics')) {
         return new Response('bonyan_api_uptime_seconds 42\n', {
           headers: { 'content-type': 'text/plain' },
         });
       }
+
       return jsonResponse({
         name: 'Bonyan-API',
         description: 'Quran & Azkar API with multi-source fallback',
@@ -254,6 +260,7 @@ describe('HttpClient', () => {
       ),
     );
     fetchMock.mockResolvedValueOnce(jsonResponse({ status: 'ok' }));
+
     const client = new BonyanClient({ retry: 1, fetch: fetchMock });
 
     await expect(client.health()).resolves.toEqual({ status: 'ok' });

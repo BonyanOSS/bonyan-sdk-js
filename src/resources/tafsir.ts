@@ -33,7 +33,9 @@ export class TafsirResource extends BaseResource {
   ): Promise<TafsirItem[]> {
     ensureTafsirEdition(edition);
     ensureSurahNumber(surah);
+
     if (options.aya !== undefined) ensureAyaNumber(options.aya);
+
     return this.http.get<TafsirItem[]>(`/tafsir/${encodeURIComponent(edition)}/${surah}`, {
       ...request,
       query: { aya: options.aya },

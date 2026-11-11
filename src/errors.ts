@@ -73,10 +73,13 @@ export class BonyanApiError extends Error {
  */
 function extractFallbackMessage(body: unknown): string | undefined {
   if (typeof body === 'string' && body.length > 0) return body;
+
   if (typeof body === 'object' && body !== null && 'message' in body) {
     const candidate = (body as { message: unknown }).message;
+
     if (typeof candidate === 'string' && candidate.length > 0) return candidate;
   }
+
   return undefined;
 }
 
@@ -107,9 +110,11 @@ export class BonyanRequestError extends Error {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return new BonyanRequestError('Bonyan API request timed out', error);
     }
+
     if (error instanceof Error) {
       return new BonyanRequestError(error.message, error);
     }
+
     return new BonyanRequestError('Bonyan API request failed', error);
   }
 }
