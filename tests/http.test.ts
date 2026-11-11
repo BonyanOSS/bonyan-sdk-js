@@ -83,6 +83,21 @@ describe('HttpClient', () => {
     expect(headers.get('X-Custom')).toBe('yes');
   });
 
+  it('lets client headers override defaults regardless of casing', async () => {
+    const fetchMock = vi.fn<BonyanFetch>(async () => ok({ reciters: [] }));
+    const client = new BonyanClient({
+      headers: { accept: 'application/custom+json', 'user-agent': 'custom-agent' },
+      userAgent: 'default-agent',
+      fetch: fetchMock,
+    });
+
+    await client.reciters.list();
+    const headers = new Headers(fetchMock.mock.calls[0]![1]?.headers);
+
+    expect(headers.get('Accept')).toBe('application/custom+json');
+    expect(headers.get('User-Agent')).toBe('custom-agent');
+  });
+
   it('strips trailing slashes from baseUrl', async () => {
     const fetchMock = vi.fn<BonyanFetch>(async () => ok({ reciters: [] }));
     const client = new BonyanClient({ baseUrl: `${TEST_BASE_URL}////`, retry: 0, fetch: fetchMock });
